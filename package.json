@@ -21,7 +21,8 @@
     "db:up": "docker compose up -d --wait db",
     "db:down": "docker compose down",
     "db:migrate": "pnpm --filter @contadim/api db:migrate",
-    "db:studio": "pnpm --filter @contadim/api db:studio"
+    "db:studio": "pnpm --filter @contadim/api db:studio",
+    "docker:full": "docker compose --profile full up --build"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
