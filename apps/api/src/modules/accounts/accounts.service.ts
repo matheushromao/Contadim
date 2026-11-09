@@ -68,7 +68,8 @@ export class AccountsService {
     await this.accounts.delete(id);
   }
 
-  private async findOwned(userId: string, id: string): Promise<Account> {
+  /** Garante que a conta existe e pertence à pessoa (usado também por outros módulos). */
+  async findOwned(userId: string, id: string): Promise<Account> {
     const account = await this.accounts.findById(userId, id);
     if (!account) throw new NotFoundError('Conta não encontrada');
     return account;
