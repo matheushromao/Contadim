@@ -17,7 +17,11 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:up": "docker compose up -d --wait db",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @contadim/api db:migrate",
+    "db:studio": "pnpm --filter @contadim/api db:studio"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
