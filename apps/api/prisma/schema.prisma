@@ -1,0 +1,140 @@
+// Modelo de dados do Contadim.
+// Regras: dinheiro sempre em centavos (Int), datas de lançamento como DATE,
+// timestamps de auditoria em UTC (timestamptz) e toda entidade pertence a um usuário.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  WALLET
+}
+
+enum EntryType {
+  INCOME
+  EXPENSE
+}
+
+enum RecurrenceFrequency {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  /// Sempre em minúsculas (normalizado pela aplicação).
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  accounts      Account[]
+  categories    Category[]
+  transactions  Transaction[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+/// Refresh tokens com rotação: cada uso gera um novo token da mesma família.
+/// Reutilizar um token já trocado revoga a família inteira (indício de roubo).
+model RefreshToken {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  familyId     String    @map("family_id") @db.Uuid
+  /// SHA-256 do token. O token em si nunca é armazenado.
+  tokenHash    String    @unique @map("token_hash")
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
+  replacedById String?   @map("replaced_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+model Account {
+  id             String      @id @default(uuid()) @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  name           String
+  type           AccountType
+  /// Saldo inicial em centavos (pode ser negativo).
+  initialBalance Int         @default(0) @map("initial_balance")
+  archivedAt     DateTime?   @map("archived_at") @db.Timestamptz(3)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Category {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  name       String
+  type       EntryType
+  /// Cor em hexadecimal (#RRGGBB).
+  color      String
+  /// Nome do ícone (Lucide), resolvido pelo front-end.
+  icon       String
+  isDefault  Boolean   @default(false) @map("is_default")
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([userId, type, name])
+  @@index([userId, type])
+  @@map("categories")
+}
+
+model Transaction {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  description String?
+  /// Valor em centavos, sempre positivo (CHECK no banco). O sinal vem de `type`.
+  amount      Int
+  type        EntryType
+  /// Data do lançamento (sem horário).
+  date        DateTime  @db.Date
+  categoryId  String    @map("category_id") @db.Uuid
+  /// Opcional desde já: na v0.2 o lançamento poderá pertencer a um cartão (cardId).
+  accountId   String?   @map("account_id") @db.Uuid
+
+  // Preparação para as próximas fases (ainda sem endpoints).
+  recurrenceFrequency RecurrenceFrequency? @map("recurrence_frequency")
+  installmentGroupId  String?              @map("installment_group_id") @db.Uuid
+  installmentNumber   Int?                 @map("installment_number")
+  installmentTotal    Int?                 @map("installment_total")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account  Account? @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([userId, date])
+  @@index([userId, categoryId, date])
+  @@index([userId, accountId, date])
+  @@index([installmentGroupId])
+  @@map("transactions")
+}
