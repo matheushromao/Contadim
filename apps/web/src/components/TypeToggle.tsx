@@ -1,0 +1,43 @@
+import type { EntryType } from '@contadim/core';
+import clsx from 'clsx';
+
+const LABELS: Record<EntryType, string> = { EXPENSE: 'Despesa', INCOME: 'Receita' };
+
+/** Alternância Despesa/Receita. */
+export function TypeToggle({
+  value,
+  onChange,
+  labels = LABELS,
+}: {
+  value: EntryType;
+  onChange: (type: EntryType) => void;
+  labels?: Record<EntryType, string>;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Tipo"
+      className="grid grid-cols-2 rounded-xl bg-stone-100 p-1"
+    >
+      {(['EXPENSE', 'INCOME'] as const).map((type) => (
+        <button
+          key={type}
+          type="button"
+          role="radio"
+          aria-checked={value === type}
+          onClick={() => onChange(type)}
+          className={clsx(
+            'min-h-10 rounded-lg text-sm font-semibold transition-colors',
+            value === type
+              ? type === 'EXPENSE'
+                ? 'bg-white text-expense shadow-sm'
+                : 'bg-white text-income shadow-sm'
+              : 'text-stone-500',
+          )}
+        >
+          {labels[type]}
+        </button>
+      ))}
+    </div>
+  );
+}
