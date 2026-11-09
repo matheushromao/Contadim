@@ -1,9 +1,11 @@
 import clsx from 'clsx';
-import { LogOut } from 'lucide-react';
+import { LogOut, Plus } from 'lucide-react';
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router';
 
 import { Logo } from '../components/Logo';
 import { useAuth } from '../features/auth/auth-context';
+import { TransactionFormSheet } from '../features/transactions/TransactionFormSheet';
 import { NAV_ITEMS } from './navigation';
 
 /**
@@ -12,11 +14,20 @@ import { NAV_ITEMS } from './navigation';
  */
 export function AppShell() {
   const { user, logout } = useAuth();
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   return (
     <div className="min-h-dvh md:flex">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-stone-200 bg-white px-3 py-5 md:flex">
-        <Logo className="mb-8 px-3" />
+        <Logo className="mb-6 px-3" />
+        <button
+          type="button"
+          onClick={() => setQuickAddOpen(true)}
+          className="mb-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 text-sm font-semibold text-white hover:bg-brand-800"
+        >
+          <Plus className="size-5" aria-hidden="true" />
+          Novo lançamento
+        </button>
         <nav aria-label="Principal" className="flex flex-1 flex-col gap-1">
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
             <NavLink
@@ -57,6 +68,17 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setQuickAddOpen(true)}
+        aria-label="Novo lançamento"
+        className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 inline-flex size-14 items-center justify-center rounded-full bg-brand-700 text-white shadow-lg shadow-brand-900/30 hover:bg-brand-800 md:hidden"
+      >
+        <Plus className="size-7" aria-hidden="true" />
+      </button>
+
+      <TransactionFormSheet open={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
 
       <nav
         aria-label="Principal"
