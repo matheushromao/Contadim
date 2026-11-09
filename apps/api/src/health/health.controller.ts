@@ -3,6 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Response } from 'express';
 
+import { Public } from '../common/auth/auth.decorators.js';
 import { PrismaService } from '../infra/prisma/prisma.service.js';
 
 interface HealthResponse {
@@ -13,6 +14,7 @@ interface HealthResponse {
 
 /** Usado pelo HEALTHCHECK do Docker e por balanceadores de carga. */
 @ApiTags('health')
+@Public()
 @SkipThrottle()
 @Controller('health')
 export class HealthController {

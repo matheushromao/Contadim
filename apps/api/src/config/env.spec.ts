@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { InvalidEnvError, parseEnv } from './env.js';
+import { EXAMPLE_JWT_SECRET, InvalidEnvError, parseEnv } from './env.js';
 
-const base = { DATABASE_URL: 'postgresql://user:pass@localhost:5432/db' };
+const base = {
+  DATABASE_URL: 'postgresql://user:pass@localhost:5432/db',
+  JWT_ACCESS_SECRET: 'x'.repeat(32),
+};
 
 describe('parseEnv', () => {
   it('aplica valores padrão', () => {
@@ -28,5 +31,25 @@ describe('parseEnv', () => {
   it('explica o que está errado', () => {
     expect(() => parseEnv({ DATABASE_URL: 'mysql://x' })).toThrow(InvalidEnvError);
     expect(() => parseEnv({})).toThrow(/DATABASE_URL/);
+  });
+
+  it('exige segredo JWT forte', () => {
+    expect(() => parseEnv({ ...base, JWT_ACCESS_SECRET: 'curto' })).toThrow(/JWT_ACCESS_SECRET/);
+  });
+
+  it('não aceita o segredo de exemplo em produção', () => {
+    const env = { ...base, JWT_ACCESS_SECRET: EXAMPLE_JWT_SECRET };
+    expect(() => parseEnv(env)).not.toThrow();
+    expect(() => parseEnv({ ...env, NODE_ENV: 'production' })).toThrow(/segredo próprio/);
+  });
+
+  it('usa cookie seguro por padrão apenas em produção', () => {
+    expect(parseEnv(base).COOKIE_SECURE).toBe(false);
+    expect(parseEnv({ ...base, NODE_ENV: 'production' }).COOKIE_SECURE).toBe(true);
+    expect(parseEnv({ ...base, COOKIE_SECURE: 'true' }).COOKIE_SECURE).toBe(true);
+  });
+
+  it('exige cookie seguro com SameSite=None', () => {
+    expect(() => parseEnv({ ...base, COOKIE_SAMESITE: 'none' })).toThrow(/COOKIE_SECURE/);
   });
 });

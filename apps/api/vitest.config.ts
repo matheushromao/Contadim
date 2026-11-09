@@ -22,6 +22,9 @@ export default defineConfig({
       DATABASE_URL: testDatabaseUrl,
       LOG_LEVEL: 'silent',
       SWAGGER_ENABLED: 'false',
+      JWT_ACCESS_SECRET: 'segredo-apenas-para-testes-automatizados-000',
+      AUTH_RATE_LIMIT_MAX: '1000',
+      RATE_LIMIT_MAX: '10000',
     },
   },
 });
