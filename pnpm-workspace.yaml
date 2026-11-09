@@ -13,3 +13,7 @@ minimumReleaseAgeExclude:
   - '@typescript-eslint/utils@8.72.2'
   - '@typescript-eslint/visitor-keys@8.72.2'
   - typescript-eslint@8.72.2
+
+# Dependências autorizadas a rodar scripts de instalação
+allowBuilds:
+  esbuild: true
