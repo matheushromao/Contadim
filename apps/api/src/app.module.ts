@@ -11,7 +11,9 @@ import { ENV, type Env } from './config/env.js';
 import { EnvModule } from './config/env.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './infra/prisma/prisma.module.js';
+import { AccountsModule } from './modules/accounts/accounts.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { CategoriesModule } from './modules/categories/categories.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
 @Module({
@@ -56,6 +58,8 @@ import { UsersModule } from './modules/users/users.module.js';
     PrismaModule,
     UsersModule,
     AuthModule,
+    AccountsModule,
+    CategoriesModule,
   ],
   controllers: [HealthController],
   providers: [
