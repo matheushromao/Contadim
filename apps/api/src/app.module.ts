@@ -1,15 +1,18 @@
 import { randomUUID } from 'node:crypto';
 
-import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { type ExecutionContext, Module } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 
+import { AUTH_RATE_LIMIT_KEY } from './common/auth/auth.decorators.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ENV, type Env } from './config/env.js';
 import { EnvModule } from './config/env.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './infra/prisma/prisma.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
+import { UsersModule } from './modules/users/users.module.js';
 
 @Module({
   imports: [
@@ -35,12 +38,24 @@ import { PrismaModule } from './infra/prisma/prisma.module.js';
       }),
     }),
     ThrottlerModule.forRootAsync({
-      inject: [ENV],
-      useFactory: (env: Env) => [
-        { ttl: env.RATE_LIMIT_TTL_SECONDS * 1000, limit: env.RATE_LIMIT_MAX },
+      inject: [ENV, Reflector],
+      useFactory: (env: Env, reflector: Reflector) => [
+        {
+          ttl: env.RATE_LIMIT_TTL_SECONDS * 1000,
+          // Rotas marcadas com @AuthRateLimit() (login, cadastro) têm limite mais baixo.
+          limit: (context: ExecutionContext) =>
+            reflector.getAllAndOverride<boolean>(AUTH_RATE_LIMIT_KEY, [
+              context.getHandler(),
+              context.getClass(),
+            ])
+              ? env.AUTH_RATE_LIMIT_MAX
+              : env.RATE_LIMIT_MAX,
+        },
       ],
     }),
     PrismaModule,
+    UsersModule,
+    AuthModule,
   ],
   controllers: [HealthController],
   providers: [
