@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 
 import { router } from './app/router';
+import { ToastProvider } from './components/ui/toast';
 import { AuthProvider } from './features/auth/AuthProvider';
 import { createQueryClient } from './lib/query-client';
 
@@ -16,9 +17,11 @@ if (!root) throw new Error('Elemento #root não encontrado');
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </ToastProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

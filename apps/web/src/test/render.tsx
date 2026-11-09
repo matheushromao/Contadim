@@ -4,6 +4,7 @@ import type { ReactElement } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { vi } from 'vitest';
 
+import { ToastProvider } from '../components/ui/toast';
 import { AuthContext, type AuthContextValue } from '../features/auth/auth-context';
 
 export function fakeAuth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
@@ -32,9 +33,11 @@ export function renderWithProviders(
   );
   const result = render(
     <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider value={auth}>
-        <RouterProvider router={router} />
-      </AuthContext.Provider>
+      <ToastProvider>
+        <AuthContext.Provider value={auth}>
+          <RouterProvider router={router} />
+        </AuthContext.Provider>
+      </ToastProvider>
     </QueryClientProvider>,
   );
   return { ...result, router, queryClient, auth };
