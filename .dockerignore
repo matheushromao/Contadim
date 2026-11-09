@@ -1,0 +1,15 @@
+# Padrão para builds com contexto na raiz. Cada app tem o seu
+# `Dockerfile.dockerignore`, que o BuildKit usa no lugar deste.
+**/node_modules
+**/dist
+**/coverage
+**/.turbo
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.github
+.husky
+**/*.log
+apps/api/src/generated
