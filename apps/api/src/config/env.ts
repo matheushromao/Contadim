@@ -23,9 +23,36 @@ export const envSchema = z.object({
   SWAGGER_ENABLED: z.stringbool().default(true),
   RATE_LIMIT_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, { message: 'use pelo menos 32 caracteres aleatórios (ex.: openssl rand -base64 48)' }),
+  JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  /** Padrão: `true` em produção. Em `http://localhost` pode ficar `false`. */
+  COOKIE_SECURE: z.stringbool().optional(),
+  /** `lax` quando front e API compartilham o domínio; `none` quando estão em domínios diferentes. */
+  COOKIE_SAMESITE: z.enum(['strict', 'lax', 'none']).default('lax'),
 });
 
-export type Env = z.infer<typeof envSchema>;
+/** Valor de exemplo do `.env.example`: não pode ir para produção. */
+export const EXAMPLE_JWT_SECRET = 'troque-este-segredo-por-um-valor-aleatorio-e-longo';
+
+const refinedEnvSchema = envSchema
+  .refine((env) => env.NODE_ENV !== 'production' || env.JWT_ACCESS_SECRET !== EXAMPLE_JWT_SECRET, {
+    message: 'defina um segredo próprio em produção',
+    path: ['JWT_ACCESS_SECRET'],
+  })
+  .transform((env) => ({
+    ...env,
+    COOKIE_SECURE: env.COOKIE_SECURE ?? env.NODE_ENV === 'production',
+  }))
+  .refine((env) => env.COOKIE_SAMESITE !== 'none' || env.COOKIE_SECURE, {
+    message: 'SameSite=None exige COOKIE_SECURE=true',
+    path: ['COOKIE_SAMESITE'],
+  });
+
+export type Env = z.output<typeof refinedEnvSchema>;
 
 export const ENV = Symbol('ENV');
 
@@ -37,7 +64,7 @@ export class InvalidEnvError extends Error {
 }
 
 export function parseEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const result = envSchema.safeParse(source);
+  const result = refinedEnvSchema.safeParse(source);
   if (!result.success) {
     throw new InvalidEnvError(
       result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`),
