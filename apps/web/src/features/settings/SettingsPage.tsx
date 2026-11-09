@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { Button } from '../../components/ui/Button';
 import { PageHeader } from '../../components/ui/States';
 import { useAuth } from '../auth/auth-context';
+import { PrivacySection } from './PrivacySection';
 
 export function SettingsPage() {
   const { user, logout } = useAuth();
@@ -23,6 +24,8 @@ export function SettingsPage() {
           Categorias
         </Link>
       </nav>
+
+      <PrivacySection />
 
       <Button variant="secondary" onClick={() => void logout()}>
         <LogOut className="size-4" aria-hidden="true" />
