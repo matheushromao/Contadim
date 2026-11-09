@@ -29,6 +29,12 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class ForbiddenError extends AppError {
+  constructor(message = 'Você não tem permissão para isso') {
+    super(ErrorCode.FORBIDDEN, message, HttpStatus.FORBIDDEN);
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(message = 'Não encontramos o que você procurou') {
     super(ErrorCode.NOT_FOUND, message, HttpStatus.NOT_FOUND);
