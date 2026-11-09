@@ -14,6 +14,7 @@ import { PrismaModule } from './infra/prisma/prisma.module.js';
 import { AccountsModule } from './modules/accounts/accounts.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { CategoriesModule } from './modules/categories/categories.module.js';
+import { SummaryModule } from './modules/summary/summary.module.js';
 import { TransactionsModule } from './modules/transactions/transactions.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
@@ -62,6 +63,7 @@ import { UsersModule } from './modules/users/users.module.js';
     AccountsModule,
     CategoriesModule,
     TransactionsModule,
+    SummaryModule,
   ],
   controllers: [HealthController],
   providers: [
