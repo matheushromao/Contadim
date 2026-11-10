@@ -57,6 +57,10 @@ export function fakeApi(handlers: Record<string, Handler>) {
     const key = `${options.method ?? 'GET'} ${path}`;
     const handler = handlers[key];
     if (!handler) return Promise.reject(new Error(`Sem handler para ${key}`));
-    return Promise.resolve(handler(options));
+    try {
+      return Promise.resolve(handler(options));
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   });
 }

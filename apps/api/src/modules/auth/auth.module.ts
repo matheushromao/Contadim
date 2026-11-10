@@ -32,5 +32,6 @@ import { TokenService } from './token.service.js';
     // Guard global: toda rota exige access token, exceto as marcadas com @Public().
     { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
+  exports: [PasswordService],
 })
 export class AuthModule {}
