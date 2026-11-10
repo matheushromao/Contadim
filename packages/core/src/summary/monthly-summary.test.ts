@@ -84,4 +84,15 @@ describe('computeAccountBalance', () => {
       computeAccountBalance({ initialBalance: 10000, totalIncome: 5000, totalExpense: 20000 }),
     ).toBe(-5000);
   });
+
+  it('desconta pagamentos de fatura do saldo', () => {
+    expect(
+      computeAccountBalance({
+        initialBalance: 100000,
+        totalIncome: 0,
+        totalExpense: 0,
+        totalInvoicePayments: 30000,
+      }),
+    ).toBe(70000);
+  });
 });

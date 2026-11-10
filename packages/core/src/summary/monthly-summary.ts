@@ -94,11 +94,20 @@ export function buildMonthlySummary(rows: readonly CategoryTotalRow[]): MonthlyS
   };
 }
 
-/** Saldo atual de uma conta: saldo inicial + receitas − despesas. */
+/**
+ * Saldo atual de uma conta: saldo inicial + receitas − despesas − pagamentos de fatura.
+ * Pagamentos de fatura reduzem o saldo, mas não são despesa: as compras já contaram.
+ */
 export function computeAccountBalance(input: {
   initialBalance: Cents;
   totalIncome: Cents;
   totalExpense: Cents;
+  totalInvoicePayments?: Cents;
 }): Cents {
-  return sumCents([input.initialBalance, input.totalIncome, -input.totalExpense]);
+  return sumCents([
+    input.initialBalance,
+    input.totalIncome,
+    -input.totalExpense,
+    -(input.totalInvoicePayments ?? 0),
+  ]);
 }
