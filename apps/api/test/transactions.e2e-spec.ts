@@ -58,6 +58,11 @@ describe('Lançamentos', () => {
       description: null,
       categoryId: expenseCategoryId,
       accountId,
+      cardId: null,
+      invoiceMonth: null,
+      installmentGroupId: null,
+      installmentNumber: null,
+      installmentTotal: null,
     });
   });
 

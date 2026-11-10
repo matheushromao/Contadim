@@ -29,6 +29,13 @@ export function toTransactionDto(transaction: Transaction): TransactionDto {
     date: fromDbDate(transaction.date),
     categoryId: transaction.categoryId,
     accountId: transaction.accountId,
+    cardId: transaction.cardId,
+    invoiceMonth: transaction.invoiceMonth
+      ? fromDbDate(transaction.invoiceMonth).slice(0, 7)
+      : null,
+    installmentGroupId: transaction.installmentGroupId,
+    installmentNumber: transaction.installmentNumber,
+    installmentTotal: transaction.installmentTotal,
     createdAt: transaction.createdAt.toISOString(),
     updatedAt: transaction.updatedAt.toISOString(),
   };
@@ -50,6 +57,7 @@ export class TransactionsService {
       ...(query.type && { type: query.type }),
       ...(query.categoryId && { categoryId: query.categoryId }),
       ...(query.accountId && { accountId: query.accountId }),
+      ...(query.cardId && { cardId: query.cardId }),
     };
     const { items, total } = await this.transactions.list(userId, filter, toSkipTake(query));
     return paginate(items.map(toTransactionDto), total, query);
