@@ -38,10 +38,12 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  accounts      Account[]
-  categories    Category[]
-  transactions  Transaction[]
-  refreshTokens RefreshToken[]
+  accounts        Account[]
+  categories      Category[]
+  transactions    Transaction[]
+  refreshTokens   RefreshToken[]
+  creditCards     CreditCard[]
+  invoicePayments InvoicePayment[]
 
   @@map("users")
 }
@@ -77,8 +79,9 @@ model Account {
   createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  invoicePayments InvoicePayment[]
 
   @@index([userId])
   @@map("accounts")
@@ -107,17 +110,21 @@ model Category {
 }
 
 model Transaction {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  description String?
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  description  String?
   /// Valor em centavos, sempre positivo (CHECK no banco). O sinal vem de `type`.
-  amount      Int
-  type        EntryType
+  amount       Int
+  type         EntryType
   /// Data do lançamento (sem horário).
-  date        DateTime  @db.Date
-  categoryId  String    @map("category_id") @db.Uuid
-  /// Opcional desde já: na v0.2 o lançamento poderá pertencer a um cartão (cardId).
-  accountId   String?   @map("account_id") @db.Uuid
+  date         DateTime  @db.Date
+  categoryId   String    @map("category_id") @db.Uuid
+  /// Exatamente um entre `accountId` e `cardId` (CHECK no banco).
+  accountId    String?   @map("account_id") @db.Uuid
+  /// Compra no cartão de crédito (sempre despesa, sempre com grupo de parcelamento).
+  cardId       String?   @map("card_id") @db.Uuid
+  /// Fatura (dia 1 do mês de vencimento) em que a parcela é cobrada. Fixada na criação.
+  invoiceMonth DateTime? @map("invoice_month") @db.Date
 
   // Preparação para as próximas fases (ainda sem endpoints).
   recurrenceFrequency RecurrenceFrequency? @map("recurrence_frequency")
@@ -128,13 +135,63 @@ model Transaction {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  account  Account? @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account  Account?    @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  card     CreditCard? @relation(fields: [cardId], references: [id], onDelete: Restrict)
 
   @@index([userId, date])
   @@index([userId, categoryId, date])
   @@index([userId, accountId, date])
   @@index([installmentGroupId])
+  @@index([userId, invoiceMonth])
+  @@index([userId, cardId, invoiceMonth])
   @@map("transactions")
+}
+
+model CreditCard {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  name       String
+  /// Limite total em centavos.
+  limit      Int
+  /// Dia do fechamento (1–31). Compras a partir deste dia vão para a fatura seguinte.
+  closingDay Int       @map("closing_day")
+  /// Dia do vencimento (1–31). Identifica a fatura pelo mês em que vence.
+  dueDay     Int       @map("due_day")
+  /// Cor em hexadecimal (#RRGGBB), para o "cartãozinho" na tela.
+  color      String
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  payments     InvoicePayment[]
+
+  @@index([userId])
+  @@map("credit_cards")
+}
+
+/// Pagamento (total ou parcial) de uma fatura, saindo de uma conta.
+/// Reduz o saldo da conta, mas não é despesa: as compras já contaram no resumo.
+model InvoicePayment {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  cardId       String   @map("card_id") @db.Uuid
+  /// Fatura paga (dia 1 do mês de vencimento).
+  invoiceMonth DateTime @map("invoice_month") @db.Date
+  accountId    String   @map("account_id") @db.Uuid
+  /// Valor em centavos, sempre positivo.
+  amount       Int
+  date         DateTime @db.Date
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card    CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  account Account    @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([userId, cardId, invoiceMonth])
+  @@index([accountId])
+  @@map("invoice_payments")
 }

@@ -11,6 +11,7 @@ export interface TransactionFilter {
   type?: EntryType;
   categoryId?: string;
   accountId?: string;
+  cardId?: string;
 }
 
 export interface TransactionData {
@@ -33,6 +34,7 @@ export class TransactionsRepository {
       ...(filter.type && { type: filter.type }),
       ...(filter.categoryId && { categoryId: filter.categoryId }),
       ...(filter.accountId && { accountId: filter.accountId }),
+      ...(filter.cardId && { cardId: filter.cardId }),
       ...((filter.from || filter.to) && {
         date: {
           ...(filter.from && { gte: toDbDate(filter.from) }),
