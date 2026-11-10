@@ -5,6 +5,12 @@
   "description": "API REST do Contadim (NestJS + Prisma + PostgreSQL).",
   "license": "MIT",
   "type": "module",
+  "files": [
+    "dist",
+    "prisma",
+    "prisma.config.ts",
+    "docker-entrypoint.sh"
+  ],
   "scripts": {
     "generate": "prisma generate",
     "build": "tsc -p tsconfig.build.json",

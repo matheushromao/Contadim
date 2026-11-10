@@ -1,0 +1,16 @@
+# Usado pelo BuildKit ao construir apps/web/Dockerfile (contexto = raiz do repositório).
+**/node_modules
+**/dist
+**/coverage
+**/.turbo
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.github
+.husky
+.vscode
+.idea
+**/*.log
+apps/api/src/generated

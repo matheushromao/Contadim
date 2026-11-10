@@ -1,0 +1,40 @@
+# Processado pela imagem oficial do Nginx (envsubst): ${API_UPSTREAM} vem do ambiente.
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    server_tokens off;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Frame-Options "DENY" always;
+
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+
+    # API na mesma origem: o cookie de refresh funciona sem CORS nem SameSite=None.
+    location /api/ {
+        # Resolve o host em tempo de requisição (o Nginx sobe mesmo se a API ainda não estiver de pé).
+        resolver 127.0.0.11 valid=30s ipv6=off;
+        set $api_upstream ${API_UPSTREAM};
+        proxy_pass $api_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-Id $request_id;
+    }
+
+    # Arquivos com hash no nome podem ficar em cache "para sempre".
+    # (`expires` em vez de `add_header`, para não perder os headers de segurança acima.)
+    location /assets/ {
+        expires 1y;
+        try_files $uri =404;
+    }
+
+    # SPA: qualquer rota desconhecida cai no index.html (que nunca fica em cache).
+    location / {
+        expires -1;
+        try_files $uri $uri/ /index.html;
+    }
+}
