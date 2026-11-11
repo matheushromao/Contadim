@@ -82,6 +82,26 @@ describe('SummaryPage', () => {
     expect(requestedMonths).toEqual([currentYearMonth()]);
   });
 
+  it('mostra quanto foi guardado em metas no mês', async () => {
+    vi.mocked(client.api).mockImplementation(
+      fakeApi({
+        'GET /summary/monthly': ({ query }) => ({
+          ...summaryFor(String(query?.month)),
+          savedInMonth: 30000,
+        }),
+        'GET /transactions': () => page([]),
+        'GET /accounts': () => page(accounts),
+        'GET /categories': () => page(categories),
+        'GET /cards': () => page([]),
+      }),
+    );
+    renderWithProviders(<SummaryPage />, { auth: fakeAuth({ status: 'authenticated', user }) });
+
+    const card = await screen.findByRole('link', { name: /guardou/ });
+    expect(card).toHaveAttribute('href', '/metas');
+    expect(normalize(card.textContent)).toMatch(/Você guardou R\$ 300,00 em metas neste mês/);
+  });
+
   it('navega para o mês anterior', async () => {
     renderWithProviders(<SummaryPage />, { auth: fakeAuth({ status: 'authenticated', user }) });
     await screen.findByText(/R\$ 3\.000,00/);

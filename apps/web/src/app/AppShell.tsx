@@ -1,7 +1,7 @@
 import clsx from 'clsx';
-import { LogOut, Plus } from 'lucide-react';
+import { LogOut, Plus, Settings } from 'lucide-react';
 import { useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router';
+import { Link, NavLink, Outlet, useLocation } from 'react-router';
 
 import { Logo } from '../components/Logo';
 import { useAuth } from '../features/auth/auth-context';
@@ -64,6 +64,13 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 md:hidden">
           <Logo />
+          <Link
+            to="/ajustes"
+            aria-label="Ajustes"
+            className="rounded-full p-2 text-stone-600 hover:bg-stone-100"
+          >
+            <Settings className="size-5" aria-hidden="true" />
+          </Link>
         </header>
         <main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-2 pb-28 md:px-8 md:pt-8 md:pb-10">
           <Outlet />
