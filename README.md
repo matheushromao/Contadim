@@ -3,7 +3,7 @@
 [![CI](https://github.com/matheushromao/Contadim/actions/workflows/ci.yml/badge.svg)](https://github.com/matheushromao/Contadim/actions/workflows/ci.yml)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-teal.svg)](./LICENSE)
 
-**Controle financeiro pessoal, simples e gratuito.** Anote os gastos do dia a dia em segundos, veja para onde o dinheiro foi no mês, acompanhe as faturas e parcelas do cartão de crédito e, em breve, suas metas de economia.
+**Controle financeiro pessoal, simples e gratuito.** Anote os gastos do dia a dia em segundos, veja para onde o dinheiro foi no mês, acompanhe as faturas e parcelas do cartão de crédito e junte dinheiro para as suas metas.
 
 O Contadim é feito para quem **não entende de finanças e não quer planilha**: abriu, digitou o valor, escolheu a categoria, pronto. Em português, em reais, pensado primeiro para o celular.
 
@@ -13,8 +13,9 @@ O Contadim é feito para quem **não entende de finanças e não quer planilha**
 
 ## Sumário
 
-- [O que já dá para fazer](#o-que-já-dá-para-fazer-v02)
+- [O que já dá para fazer](#o-que-já-dá-para-fazer-v03)
 - [Como o cartão de crédito funciona](#como-o-cartão-de-crédito-funciona)
+- [Como as metas funcionam](#como-as-metas-funcionam)
 - [Como rodar](#como-rodar)
 - [Arquitetura](#arquitetura)
 - [API](#api)
@@ -23,11 +24,12 @@ O Contadim é feito para quem **não entende de finanças e não quer planilha**
 - [Roadmap](#roadmap)
 - [Como contribuir](#como-contribuir)
 
-## O que já dá para fazer (v0.2)
+## O que já dá para fazer (v0.3)
 
 - **Lançamento rápido:** só valor e categoria são obrigatórios. Data (hoje) e "pagar com" (a última conta ou cartão usado) já vêm preenchidos. No cartão, dá para parcelar em até 24x, com a prévia das parcelas na hora.
 - **Cartão de crédito:** faturas por ciclo, parcelas distribuídas nos meses seguintes, limite disponível, status da fatura (aberta, fechada, paga, vencida) e pagamento total ou parcial a partir de uma conta.
-- **Resumo do mês:** receitas, despesas, saldo, "para onde foi o dinheiro" (gastos por categoria) e as faturas que vencem no mês, com navegação entre meses.
+- **Metas de economia:** valor-alvo, prazo opcional e o cálculo de quanto guardar por mês. Dá para guardar e resgatar a partir de uma conta.
+- **Resumo do mês:** receitas, despesas, saldo, "para onde foi o dinheiro" (gastos por categoria), as faturas que vencem no mês e quanto foi guardado em metas, com navegação entre meses.
 - **Lançamentos:** lista por mês agrupada por dia (e as parcelas de cartão agrupadas por cartão), com filtro por tipo, edição e exclusão.
 - **Contas** (corrente, poupança, carteira) com saldo atual, e **categorias** personalizáveis (cor e ícone). Toda conta nova já começa com categorias padrão e uma "Carteira".
 - **Conta de usuário** com e-mail e senha, e sessão segura que se renova sozinha.
@@ -46,6 +48,18 @@ As regras ficam em `packages/core/src/cards`, como funções puras e testadas, e
 - **Pagamento parcial** é permitido. O que faltar continua na mesma fatura. Ainda não existe rotativo nem juros.
 - **Limite disponível** é o limite menos tudo o que está em aberto, incluindo parcelas futuras.
 - **Mudar o dia de fechamento ou vencimento** vale só para compras novas.
+
+## Como as metas funcionam
+
+As regras ficam em `packages/core/src/goals`, como funções puras e testadas.
+
+- **Guardar** dinheiro numa meta registra a saída de uma conta. O saldo da conta diminui, mas isso **não** é despesa no resumo: o dinheiro foi separado, não gasto.
+- **Resgatar** devolve o dinheiro para uma conta. O resgate nunca pode passar do que está guardado.
+- **O prazo é opcional.** Sem prazo, a meta mostra só o progresso.
+- **Quanto guardar por mês:** o que falta é dividido pelos meses até o prazo, inclusive. O mês atual entra enquanto ainda não houver depósito nele, e o valor é arredondado para cima no centavo.
+  - Exemplo: faltam R$ 1.200, o prazo é março e hoje é novembro. Sem depósito em novembro, são 5 meses de R$ 240. Se já guardou em novembro, são 4 meses de R$ 300.
+- **Situação da meta:** em andamento, atingida, prazo passou (aí o plano pede tudo o que falta) ou sem prazo.
+- **Uma meta com dinheiro guardado não pode ser excluída.** É preciso resgatar o valor antes, para que ele volte para uma conta.
 
 ## Como rodar
 
@@ -157,7 +171,7 @@ Ferramentas: **pnpm workspaces** + **Turborepo** (cache e ordem de build), **Typ
 - **Multiusuário desde o início:** toda entidade tem `userId`, toda consulta é filtrada pelo usuário autenticado e o `userId` **sempre** vem do token, nunca do cliente. Recurso de outra pessoa responde 404.
 - **Dinheiro sempre em centavos, como inteiro** (`R$ 12,50` = `1250`). Nunca `float`.
 - **Datas de lançamento como data de calendário** (`YYYY-MM-DD`, sem fuso); timestamps de auditoria em UTC.
-- **Cada funcionalidade é um módulo novo.** O cartão de crédito (v0.2) entrou como os módulos `cards`, `card-purchases` e `invoices`, mexendo nos existentes só onde era necessário (o "mês efetivo" no resumo e na lista, e o saldo das contas). Metas (v0.3) entram como `modules/goals`.
+- **Cada funcionalidade é um módulo novo.** O cartão de crédito (v0.2) entrou como os módulos `cards`, `card-purchases` e `invoices`, mexendo nos existentes só onde era necessário (o "mês efetivo" no resumo e na lista, e o saldo das contas). As metas (v0.3) seguiram o mesmo caminho, com o módulo `goals` e o mesmo padrão do pagamento de fatura: dinheiro que sai de uma conta sem ser despesa.
 
 ### Stack
 
@@ -191,6 +205,7 @@ REST versionada em `/api/v1`, documentada com **Swagger em `/api/docs`**.
 | Cartões     | `GET/POST /cards`, `GET/PATCH/DELETE /cards/:id` (com limite disponível e fatura atual)                                                    |
 | Compras     | `POST /cards/:id/purchases` (valor total + parcelas), `GET/PATCH/DELETE /cards/:id/purchases/:groupId`                                     |
 | Faturas     | `GET /cards/:id/invoices`, `GET /cards/:id/invoices/:mes`, `POST/DELETE /cards/:id/invoices/:mes/payments`                                 |
+| Metas       | `GET/POST /goals`, `GET/PATCH/DELETE /goals/:id`, `GET/POST /goals/:id/movements`, `DELETE /goals/:id/movements/:movementId`               |
 | Resumo      | `GET /summary/monthly?month=AAAA-MM`                                                                                                       |
 | Saúde       | `GET /health` (fora do prefixo)                                                                                                            |
 
@@ -219,7 +234,7 @@ pnpm test
 ```
 
 - **`core` e `contracts`:** testes unitários das regras e dos schemas.
-- **`api`:** testes de integração que sobem a aplicação inteira (mesma configuração de produção) contra um PostgreSQL real. Cobrem fluxos de auth, CRUDs, filtros, resumo, cartões, parcelas, faturas, pagamentos, LGPD e o **isolamento entre usuários**. A data de "hoje" é fixada nos testes de fatura, para que fiquem determinísticos.
+- **`api`:** testes de integração que sobem a aplicação inteira (mesma configuração de produção) contra um PostgreSQL real. Cobrem fluxos de auth, CRUDs, filtros, resumo, cartões, parcelas, faturas, pagamentos, metas, LGPD e o **isolamento entre usuários**. A data de "hoje" é fixada nos testes de fatura e de metas, para que fiquem determinísticos.
 - **`web`:** testes de componente com Testing Library, como lançamento rápido, resumo, formulários e guards de rota.
 
 O **CI** (GitHub Actions) roda formatação, lint, typecheck, testes e build em todo push e PR, e também builda as imagens Docker.
@@ -235,8 +250,8 @@ O **CI** (GitHub Actions) roda formatação, lint, typecheck, testes e build em 
 
 - [x] **v0.1:** contas, categorias, lançamentos, resumo mensal, autenticação, LGPD, Docker e CI
 - [x] **v0.2:** cartão de crédito, com faturas por ciclo, parcelamentos distribuídos nos meses seguintes, limite disponível e pagamento de fatura (total ou parcial)
-- [ ] **v0.3:** metas de economia, com valor-alvo, prazo e quanto guardar por mês
-- [ ] **Depois:** gráficos de evolução, comparação com meses anteriores, importação de extrato (OFX/CSV), PWA, login social, estorno no cartão e rotativo
+- [x] **v0.3:** metas de economia, com valor-alvo, prazo opcional, quanto guardar por mês, depósitos e resgates
+- [ ] **Depois:** gráficos de evolução, comparação com meses anteriores, importação de extrato (OFX/CSV), PWA, login social, estorno no cartão, rotativo e depósito automático em metas
 
 O histórico de cada versão está no [CHANGELOG](./CHANGELOG.md).
 
