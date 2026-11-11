@@ -3,6 +3,30 @@
 Todas as mudanças relevantes do Contadim ficam registradas aqui.
 O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/), e as versões seguem o [SemVer](https://semver.org/lang/pt-BR/).
 
+## [0.3.0]: metas de economia
+
+### Adicionado
+
+- **Metas de economia** com nome, valor-alvo, prazo opcional, cor e ícone.
+- **Plano mensal**: quanto guardar por mês até o prazo, com o valor arredondado para cima no centavo. O mês atual conta enquanto não houver depósito nele.
+- **Situação da meta**: em andamento, atingida, prazo passou ou sem prazo.
+- **Guardar e resgatar** a partir de uma conta, com histórico e opção de desfazer:
+  - o resgate nunca passa do que está guardado;
+  - desfazer um depósito que já foi resgatado é bloqueado.
+- **Telas** de metas e de detalhe da meta. O botão "Guardar" já sugere o valor mensal do plano.
+- **Resumo do mês** com "Você guardou R$ X em metas neste mês" (campo `savedInMonth` na API).
+
+### Alterado
+
+- **Saldo das contas** considera depósitos (−) e resgates (+) em metas. Isso não entra em receitas nem em despesas.
+- **Contas usadas em metas** não podem ser excluídas, e **metas com dinheiro guardado** também não.
+- **Exportação de dados (LGPD)** passou para a `version: 3`, com metas e movimentações. A exclusão de conta também apaga esses dados.
+- **No celular**, "Metas" entrou na barra inferior, e "Ajustes" foi para o ícone de engrenagem no cabeçalho.
+
+### Banco de dados
+
+- Migration `goals`: tabelas `goals` e `goal_movements` (com o enum `GoalMovementType`) e CHECKs de valores positivos.
+
 ## [0.2.0]: cartão de crédito
 
 ### Adicionado
