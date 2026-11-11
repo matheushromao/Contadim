@@ -1,4 +1,11 @@
-import type { Account, Category, CreditCard, InvoiceDetail, Paginated } from '@contadim/contracts';
+import type {
+  Account,
+  Category,
+  CreditCard,
+  Goal,
+  InvoiceDetail,
+  Paginated,
+} from '@contadim/contracts';
 import { vi } from 'vitest';
 
 import type { RequestOptions } from '../lib/api-client';
@@ -123,6 +130,31 @@ export function invoiceDetail(
       },
     ],
     payments: [],
+    ...overrides,
+  };
+}
+
+export const GOAL_ID = '00000000-0000-4000-8000-0000000000b1';
+
+/** Meta "Viagem": R$ 800 de R$ 2.000, prazo em março, R$ 240/mês. */
+export function goal(overrides: Partial<Goal> = {}): Goal {
+  return {
+    id: GOAL_ID,
+    name: 'Viagem',
+    targetAmount: 200000,
+    deadline: '2027-03-31',
+    color: '#0EA5E9',
+    icon: 'plane',
+    saved: 80000,
+    remaining: 120000,
+    percent: 40,
+    status: 'IN_PROGRESS',
+    monthsLeft: 5,
+    monthlyAmount: 24000,
+    savedThisMonth: 0,
+    archivedAt: null,
+    createdAt: '2026-10-01T00:00:00Z',
+    updatedAt: '2026-10-01T00:00:00Z',
     ...overrides,
   };
 }
