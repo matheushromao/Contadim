@@ -17,6 +17,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { CardPurchasesModule } from './modules/card-purchases/card-purchases.module.js';
 import { CardsModule } from './modules/cards/cards.module.js';
 import { CategoriesModule } from './modules/categories/categories.module.js';
+import { InvoicesModule } from './modules/invoices/invoices.module.js';
 import { PrivacyModule } from './modules/privacy/privacy.module.js';
 import { SummaryModule } from './modules/summary/summary.module.js';
 import { TransactionsModule } from './modules/transactions/transactions.module.js';
@@ -72,6 +73,7 @@ import { UsersModule } from './modules/users/users.module.js';
     PrivacyModule,
     CardsModule,
     CardPurchasesModule,
+    InvoicesModule,
   ],
   controllers: [HealthController],
   providers: [
