@@ -8,10 +8,13 @@ export function TypeToggle({
   value,
   onChange,
   labels = LABELS,
+  disabledType,
 }: {
   value: EntryType;
   onChange: (type: EntryType) => void;
   labels?: Record<EntryType, string>;
+  /** Tipo indisponível no contexto (ex.: receita em compra no cartão). */
+  disabledType?: EntryType | undefined;
 }) {
   return (
     <div
@@ -25,9 +28,10 @@ export function TypeToggle({
           type="button"
           role="radio"
           aria-checked={value === type}
+          disabled={disabledType === type}
           onClick={() => onChange(type)}
           className={clsx(
-            'min-h-10 rounded-lg text-sm font-semibold transition-colors',
+            'min-h-10 rounded-lg text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40',
             value === type
               ? type === 'EXPENSE'
                 ? 'bg-white text-expense shadow-sm'

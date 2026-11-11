@@ -11,7 +11,8 @@ import { useMonthParam } from '../../lib/use-month-param';
 import { useAuth } from '../auth/auth-context';
 import { CategoryIcon } from '../categories/CategoryIcon';
 import { useMonthTransactions } from '../transactions/api';
-import { TransactionFormSheet } from '../transactions/TransactionFormSheet';
+import { MonthInvoices } from './MonthInvoices';
+import { EditTransactionSheet } from '../transactions/EditTransactionSheet';
 import { TransactionList } from '../transactions/TransactionList';
 import { useMonthlySummary } from './api';
 
@@ -43,6 +44,7 @@ export function SummaryPage() {
         <>
           <Totals summary={summary.data} />
           <ExpensesByCategory summary={summary.data} />
+          <MonthInvoices month={month} transactions={transactions.data ?? []} />
         </>
       )}
 
@@ -74,11 +76,7 @@ export function SummaryPage() {
         )}
       </div>
 
-      <TransactionFormSheet
-        open={editing !== null}
-        onClose={() => setEditing(null)}
-        transaction={editing ?? undefined}
-      />
+      <EditTransactionSheet transaction={editing} onClose={() => setEditing(null)} />
     </section>
   );
 }

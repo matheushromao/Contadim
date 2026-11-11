@@ -1,5 +1,6 @@
 import type {
   CardPurchase,
+  CreateCardPurchaseInput,
   CreateCreditCardInput,
   CreateInvoicePaymentInput,
   CreditCard,
@@ -97,6 +98,15 @@ export function useDeletePurchase(cardId: string) {
   return useMutation({
     mutationFn: (groupId: string) =>
       api<void>(`/cards/${cardId}/purchases/${groupId}`, { method: 'DELETE' }),
+    onSuccess: () => invalidateMoneyData(queryClient),
+  });
+}
+
+export function useCreateCardPurchase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ cardId, input }: { cardId: string; input: CreateCardPurchaseInput }) =>
+      api<CardPurchase>(`/cards/${cardId}/purchases`, { method: 'POST', body: input }),
     onSuccess: () => invalidateMoneyData(queryClient),
   });
 }

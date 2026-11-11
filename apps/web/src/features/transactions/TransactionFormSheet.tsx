@@ -2,13 +2,15 @@ import {
   type Account,
   type Category,
   createTransactionSchema,
+  type CreditCard,
+  installmentsSchema,
   type Transaction,
 } from '@contadim/contracts';
 import { zodResolver } from '@hookform/resolvers/zod';
 import clsx from 'clsx';
 import { useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import { ConfirmDelete } from '../../components/ConfirmDelete';
 import { TypeToggle } from '../../components/TypeToggle';
@@ -21,17 +23,52 @@ import { ErrorState, LoadingState } from '../../components/ui/States';
 import { useToast } from '../../components/ui/toast-context';
 import { today } from '../../lib/dates';
 import { applyApiError } from '../../lib/form-errors';
-import { LAST_ACCOUNT_KEY, storage } from '../../lib/storage';
+import { LAST_ACCOUNT_KEY, LAST_SOURCE_KEY, storage } from '../../lib/storage';
 import { useAccounts } from '../accounts/api';
+import { useCreateCardPurchase, useCards } from '../cards/api';
 import { useCategories } from '../categories/api';
 import { CategoryIcon } from '../categories/CategoryIcon';
 import { useDeleteTransaction, useSaveTransaction } from './api';
-
-type Form = z.input<typeof createTransactionSchema>;
+import {
+  decodeSource,
+  defaultSource,
+  encodeSource,
+  INSTALLMENT_OPTIONS,
+  installmentPreview,
+} from './payment-source';
 
 /**
- * Lançamento rápido (criação) e edição. Na criação, só valor e categoria dependem
- * da pessoa: tipo (despesa), data (hoje) e conta (a última usada) já vêm preenchidos.
+ * Formulário do lançamento rápido. Reaproveita o contrato de lançamento e troca a conta
+ * por "Pagar com" (conta ou cartão). No cartão, a compra pode ser parcelada.
+ */
+const quickEntrySchema = createTransactionSchema
+  .omit({ accountId: true })
+  .extend({
+    source: z.string().refine((value) => decodeSource(value) !== null, {
+      message: 'Escolha de onde sai o dinheiro',
+    }),
+    installments: installmentsSchema,
+  })
+  .superRefine((input, ctx) => {
+    if (decodeSource(input.source)?.kind !== 'card') return;
+    if (input.type !== 'EXPENSE') {
+      ctx.addIssue({ code: 'custom', path: ['type'], message: 'Cartão só aceita despesa' });
+    }
+    if (input.amount < input.installments) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['installments'],
+        message: 'O valor é pequeno demais para esse número de parcelas',
+      });
+    }
+  });
+
+type Form = z.input<typeof quickEntrySchema>;
+
+/**
+ * Lançamento rápido (criação) e edição de lançamentos de conta. Na criação, só valor e
+ * categoria dependem da pessoa: tipo (despesa), data (hoje) e "pagar com" (a última forma
+ * usada) já vêm preenchidos. Compras no cartão são editadas pela fatura.
  */
 export function TransactionFormSheet({
   open,
@@ -62,14 +99,20 @@ function TransactionFormLoader({
 }) {
   const accounts = useAccounts();
   const categories = useCategories();
+  const cards = useCards();
 
-  if (accounts.isPending || categories.isPending) return <LoadingState />;
-  if (accounts.isError || categories.isError) {
-    return <ErrorState error={accounts.error ?? categories.error} />;
+  if (accounts.isPending || categories.isPending || cards.isPending) return <LoadingState />;
+  if (accounts.isError || categories.isError || cards.isError) {
+    return <ErrorState error={accounts.error ?? categories.error ?? cards.error} />;
   }
-  if (accounts.data.length === 0) {
+  // Na edição de um lançamento de conta, o cartão não é uma opção.
+  const usableCards = transaction ? [] : cards.data;
+  if (accounts.data.length === 0 && usableCards.length === 0) {
     return (
-      <Alert tone="info">Crie uma conta em &quot;Contas&quot; para começar a lançar. 😉</Alert>
+      <Alert tone="info">
+        Crie uma conta em &quot;Contas&quot; (ou um cartão em &quot;Cartões&quot;) para começar a
+        lançar. 😉
+      </Alert>
     );
   }
   return (
@@ -77,30 +120,29 @@ function TransactionFormLoader({
       key={transaction?.id ?? 'new'}
       transaction={transaction}
       accounts={accounts.data}
+      cards={usableCards}
       categories={categories.data}
       onDone={onDone}
     />
   );
 }
 
-function defaultAccountId(accounts: Account[]): string {
-  const last = storage.get(LAST_ACCOUNT_KEY);
-  return accounts.find((account) => account.id === last)?.id ?? accounts[0]!.id;
-}
-
 function TransactionForm({
   transaction,
   accounts,
+  cards,
   categories,
   onDone,
 }: {
   transaction?: Transaction | undefined;
   accounts: Account[];
+  cards: CreditCard[];
   categories: Category[];
   onDone: () => void;
 }) {
   const toast = useToast();
   const save = useSaveTransaction();
+  const createPurchase = useCreateCardPurchase();
   const remove = useDeleteTransaction();
   const [formError, setFormError] = useState('');
   const {
@@ -110,15 +152,16 @@ function TransactionForm({
     setError,
     setValue,
     formState: { errors },
-  } = useForm<Form, unknown, z.output<typeof createTransactionSchema>>({
-    resolver: zodResolver(createTransactionSchema),
+  } = useForm<Form, unknown, z.output<typeof quickEntrySchema>>({
+    resolver: zodResolver(quickEntrySchema),
     defaultValues: transaction
       ? {
           amount: transaction.amount,
           type: transaction.type,
           date: transaction.date,
           categoryId: transaction.categoryId,
-          accountId: transaction.accountId ?? defaultAccountId(accounts),
+          source: encodeSource({ kind: 'account', id: transaction.accountId ?? accounts[0]!.id }),
+          installments: 1,
           description: transaction.description ?? '',
         }
       : {
@@ -126,20 +169,52 @@ function TransactionForm({
           type: 'EXPENSE',
           date: today(),
           categoryId: '',
-          accountId: defaultAccountId(accounts),
+          source: defaultSource(accounts, cards),
+          installments: 1,
           description: '',
         },
   });
 
-  const type = useWatch({ control, name: 'type' });
+  const [type, sourceValue, amount, installments, date] = useWatch({
+    control,
+    name: ['type', 'source', 'amount', 'installments', 'date'],
+  });
+  const source = decodeSource(sourceValue);
+  const selectedCard =
+    source?.kind === 'card' ? cards.find((card) => card.id === source.id) : undefined;
   const visibleCategories = categories.filter((category) => category.type === type);
+  const preview = selectedCard
+    ? installmentPreview({ card: selectedCard, amount, installments, date })
+    : null;
 
-  const onSubmit = handleSubmit(async (input) => {
+  const onSubmit = handleSubmit(async ({ source: rawSource, installments: count, ...input }) => {
     setFormError('');
+    const target = decodeSource(rawSource)!;
     try {
-      await save.mutateAsync(transaction ? { id: transaction.id, input } : { input });
-      storage.set(LAST_ACCOUNT_KEY, input.accountId);
-      toast.show(transaction ? 'Lançamento atualizado' : 'Anotado! 📝');
+      if (target.kind === 'card') {
+        await createPurchase.mutateAsync({
+          cardId: target.id,
+          input: {
+            amount: input.amount,
+            installments: count,
+            date: input.date,
+            categoryId: input.categoryId,
+            description: input.description ?? null,
+          },
+        });
+      } else {
+        const data = { ...input, accountId: target.id };
+        await save.mutateAsync(transaction ? { id: transaction.id, input: data } : { input: data });
+        storage.set(LAST_ACCOUNT_KEY, target.id);
+      }
+      if (!transaction) storage.set(LAST_SOURCE_KEY, rawSource);
+      toast.show(
+        transaction
+          ? 'Lançamento atualizado'
+          : target.kind === 'card' && count > 1
+            ? `Anotado em ${count}x! 💳`
+            : 'Anotado! 📝',
+      );
       onDone();
     } catch (error) {
       setFormError(applyApiError(error, setError));
@@ -167,6 +242,7 @@ function TransactionForm({
         render={({ field }) => (
           <TypeToggle
             value={field.value}
+            disabledType={selectedCard ? 'INCOME' : undefined}
             onChange={(next) => {
               field.onChange(next);
               // Categoria de despesa não serve para receita (e vice-versa).
@@ -225,22 +301,80 @@ function TransactionForm({
       <div className="grid grid-cols-2 gap-3">
         <TextField label="Data" type="date" error={errors.date?.message} {...register('date')} />
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="transaction-account" className="text-sm font-medium text-stone-700">
-            Conta
+          <label htmlFor="transaction-source" className="text-sm font-medium text-stone-700">
+            Pagar com
           </label>
           <select
-            id="transaction-account"
+            id="transaction-source"
             className="min-h-11 rounded-xl border border-stone-300 bg-white px-3"
-            {...register('accountId')}
+            {...register('source', {
+              onChange: (event: React.ChangeEvent<HTMLSelectElement>) => {
+                if (decodeSource(event.target.value)?.kind === 'card' && type !== 'EXPENSE') {
+                  // Cartão só aceita despesa.
+                  setValue('type', 'EXPENSE');
+                  setValue('categoryId', '');
+                }
+              },
+            })}
           >
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
+            {cards.length > 0 ? (
+              <>
+                <optgroup label="Contas">
+                  {accounts.map((account) => (
+                    <option
+                      key={account.id}
+                      value={encodeSource({ kind: 'account', id: account.id })}
+                    >
+                      {account.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Cartões de crédito">
+                  {cards.map((card) => (
+                    <option key={card.id} value={encodeSource({ kind: 'card', id: card.id })}>
+                      {card.name}
+                    </option>
+                  ))}
+                </optgroup>
+              </>
+            ) : (
+              accounts.map((account) => (
+                <option key={account.id} value={encodeSource({ kind: 'account', id: account.id })}>
+                  {account.name}
+                </option>
+              ))
+            )}
           </select>
         </div>
       </div>
+
+      {selectedCard && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="transaction-installments" className="text-sm font-medium text-stone-700">
+            Parcelas
+          </label>
+          <select
+            id="transaction-installments"
+            className="min-h-11 rounded-xl border border-stone-300 bg-white px-3"
+            {...register('installments', { valueAsNumber: true })}
+          >
+            {INSTALLMENT_OPTIONS.map((count) => (
+              <option key={count} value={count}>
+                {count === 1 ? 'À vista' : `${count}x`}
+              </option>
+            ))}
+          </select>
+          {errors.installments ? (
+            <p className="text-sm text-rose-600">{errors.installments.message}</p>
+          ) : (
+            preview && (
+              <p className="tabular text-sm text-stone-600" aria-live="polite">
+                {preview}
+              </p>
+            )
+          )}
+        </div>
+      )}
 
       <TextField
         label="Descrição (opcional)"
@@ -259,7 +393,11 @@ function TransactionForm({
         ) : (
           <span />
         )}
-        <Button type="submit" loading={save.isPending} className="sm:min-w-40">
+        <Button
+          type="submit"
+          loading={save.isPending || createPurchase.isPending}
+          className="sm:min-w-40"
+        >
           {transaction ? 'Salvar' : 'Lançar'}
         </Button>
       </div>

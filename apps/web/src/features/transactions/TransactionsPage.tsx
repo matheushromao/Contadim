@@ -7,7 +7,7 @@ import { MonthNavigator } from '../../components/MonthNavigator';
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '../../components/ui/States';
 import { useMonthParam } from '../../lib/use-month-param';
 import { useMonthTransactions } from './api';
-import { TransactionFormSheet } from './TransactionFormSheet';
+import { EditTransactionSheet } from './EditTransactionSheet';
 import { TransactionList } from './TransactionList';
 
 const FILTERS: { label: string; value: EntryType | undefined }[] = [
@@ -58,11 +58,7 @@ export function TransactionsPage() {
         <TransactionList transactions={transactions.data} onSelect={setEditing} />
       )}
 
-      <TransactionFormSheet
-        open={editing !== null}
-        onClose={() => setEditing(null)}
-        transaction={editing ?? undefined}
-      />
+      <EditTransactionSheet transaction={editing} onClose={() => setEditing(null)} />
     </section>
   );
 }
