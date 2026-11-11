@@ -30,11 +30,13 @@ export class PrivacyRepository {
   }
 
   /**
-   * Apaga a pessoa e tudo o que é dela. Pagamentos e lançamentos saem primeiro porque têm
-   * FK `RESTRICT` para contas, cartões e categorias; o resto sai em cascata a partir do usuário.
+   * Apaga a pessoa e tudo o que é dela. Movimentações de metas, pagamentos e lançamentos saem
+   * primeiro porque têm FK `RESTRICT` para contas, cartões e categorias; o resto sai em
+   * cascata a partir do usuário.
    */
   async deleteUserAndData(userId: string): Promise<void> {
     await this.prisma.$transaction([
+      this.prisma.goalMovement.deleteMany({ where: { userId } }),
       this.prisma.invoicePayment.deleteMany({ where: { userId } }),
       this.prisma.transaction.deleteMany({ where: { userId } }),
       this.prisma.user.delete({ where: { id: userId } }),
