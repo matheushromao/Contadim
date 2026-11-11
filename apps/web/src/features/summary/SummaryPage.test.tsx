@@ -61,6 +61,7 @@ describe('SummaryPage', () => {
         'GET /transactions': () => page([]),
         'GET /accounts': () => page(accounts),
         'GET /categories': () => page(categories),
+        'GET /cards': () => page([]),
       }),
     );
   });
