@@ -100,3 +100,37 @@ export function insertInvoicePayment(
     },
   });
 }
+
+/** Cria uma meta direto no banco. */
+export function insertGoal(
+  prisma: PrismaService,
+  data: { userId: string; name?: string; targetAmount?: number; deadline?: string | null },
+) {
+  const { deadline = null, ...rest } = data;
+  return prisma.goal.create({
+    data: {
+      name: 'Viagem',
+      targetAmount: 200000,
+      color: '#0EA5E9',
+      icon: 'plane',
+      ...rest,
+      deadline: deadline ? new Date(`${deadline}T00:00:00Z`) : null,
+    },
+  });
+}
+
+/** Registra um depósito ou resgate de meta direto no banco. */
+export function insertGoalMovement(
+  prisma: PrismaService,
+  data: {
+    userId: string;
+    goalId: string;
+    accountId: string;
+    type: 'DEPOSIT' | 'WITHDRAWAL';
+    amount: number;
+    date?: string;
+  },
+) {
+  const { date = '2026-11-01', ...rest } = data;
+  return prisma.goalMovement.create({ data: { ...rest, date: new Date(`${date}T00:00:00Z`) } });
+}
