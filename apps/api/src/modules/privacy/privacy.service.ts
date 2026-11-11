@@ -5,6 +5,7 @@ import { PinoLogger } from 'nestjs-pino';
 import { ForbiddenError, NotFoundError } from '../../common/errors/app-error.js';
 import { PasswordService } from '../auth/password.service.js';
 import { toCategoryDto } from '../categories/categories.service.js';
+import { toInvoicePaymentDto } from '../invoices/invoices.service.js';
 import { toTransactionDto } from '../transactions/transactions.service.js';
 import { toUserDto } from '../users/users.mapper.js';
 import { UsersRepository } from '../users/users.repository.js';
@@ -28,7 +29,7 @@ export class PrivacyService {
 
     return {
       exportedAt: new Date().toISOString(),
-      version: 1,
+      version: 2,
       user: toUserDto(data.user),
       accounts: data.accounts.map((account) => ({
         id: account.id,
@@ -41,6 +42,18 @@ export class PrivacyService {
       })),
       categories: data.categories.map(toCategoryDto),
       transactions: data.transactions.map(toTransactionDto),
+      creditCards: data.creditCards.map((card) => ({
+        id: card.id,
+        name: card.name,
+        limit: card.limit,
+        closingDay: card.closingDay,
+        dueDay: card.dueDay,
+        color: card.color,
+        archivedAt: card.archivedAt?.toISOString() ?? null,
+        createdAt: card.createdAt.toISOString(),
+        updatedAt: card.updatedAt.toISOString(),
+      })),
+      invoicePayments: data.invoicePayments.map(toInvoicePaymentDto),
     };
   }
 
