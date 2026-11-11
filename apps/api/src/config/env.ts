@@ -1,5 +1,14 @@
 import { z } from 'zod';
 
+function isValidTimeZone(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Variáveis de ambiente da API, validadas na inicialização.
  * Se algo estiver faltando ou inválido, a API não sobe e mostra o motivo.
@@ -33,6 +42,11 @@ export const envSchema = z.object({
   COOKIE_SECURE: z.stringbool().optional(),
   /** `lax` quando front e API compartilham o domínio; `none` quando estão em domínios diferentes. */
   COOKIE_SAMESITE: z.enum(['strict', 'lax', 'none']).default('lax'),
+  /** Fuso usado para saber "que dia é hoje" (fatura atual, vencimentos). */
+  APP_TIMEZONE: z
+    .string()
+    .default('America/Sao_Paulo')
+    .refine(isValidTimeZone, { message: 'fuso horário IANA inválido (ex.: America/Sao_Paulo)' }),
 });
 
 /** Valor de exemplo do `.env.example`: não pode ir para produção. */
