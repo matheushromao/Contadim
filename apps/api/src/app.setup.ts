@@ -30,7 +30,7 @@ export function setupApp(app: NestExpressApplication): void {
     const config = new DocumentBuilder()
       .setTitle('Contadim API')
       .setDescription('API do Contadim: controle financeiro pessoal, simples e open source.')
-      .setVersion('0.2.0')
+      .setVersion('0.3.0')
       .addBearerAuth()
       .build();
     SwaggerModule.setup('api/docs', app, () => SwaggerModule.createDocument(app, config));
