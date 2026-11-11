@@ -17,3 +17,5 @@ export const storage = {
 };
 
 export const LAST_ACCOUNT_KEY = 'contadim:last-account-id';
+/** Última forma de pagamento do lançamento rápido: `account:<id>` ou `card:<id>`. */
+export const LAST_SOURCE_KEY = 'contadim:last-source';
