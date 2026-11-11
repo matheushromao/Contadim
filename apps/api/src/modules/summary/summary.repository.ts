@@ -1,7 +1,7 @@
-import type { CategoryTotalRow, IsoDate } from '@contadim/core';
+import type { CategoryTotalRow, YearMonth } from '@contadim/core';
 import { Injectable } from '@nestjs/common';
 
-import { toDbDate } from '../../infra/prisma/calendar-date.js';
+import { effectiveMonthWhere } from '../../infra/prisma/effective-month.js';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
 
 export interface CategoryInfo {
@@ -15,14 +15,14 @@ export interface CategoryInfo {
 export class SummaryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Totais por tipo e categoria no período, agregados no banco (índice userId + categoryId + date). */
-  async totalsByCategory(
-    userId: string,
-    range: { from: IsoDate; to: IsoDate },
-  ): Promise<CategoryTotalRow[]> {
+  /**
+   * Totais por tipo e categoria no mês efetivo, agregados no banco: lançamentos de conta
+   * pela data, compras no cartão pelo mês da fatura. Pagamentos de fatura não entram.
+   */
+  async totalsByCategory(userId: string, month: YearMonth): Promise<CategoryTotalRow[]> {
     const rows = await this.prisma.transaction.groupBy({
       by: ['type', 'categoryId'],
-      where: { userId, date: { gte: toDbDate(range.from), lte: toDbDate(range.to) } },
+      where: { userId, ...effectiveMonthWhere(month) },
       _sum: { amount: true },
     });
     return rows.map((row) => ({

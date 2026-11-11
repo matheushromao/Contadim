@@ -1,10 +1,5 @@
 import type { MonthlySummary, SummaryCategoryItem } from '@contadim/contracts';
-import {
-  buildMonthlySummary,
-  type CategoryBreakdownItem,
-  monthRange,
-  type YearMonth,
-} from '@contadim/core';
+import { buildMonthlySummary, type CategoryBreakdownItem, type YearMonth } from '@contadim/core';
 import { Injectable } from '@nestjs/common';
 
 import { type CategoryInfo, SummaryRepository } from './summary.repository.js';
@@ -15,7 +10,7 @@ export class SummaryService {
 
   /** Resumo do mês: o banco agrega, o core calcula e aqui só juntamos os dados das categorias. */
   async monthly(userId: string, month: YearMonth): Promise<MonthlySummary> {
-    const rows = await this.summary.totalsByCategory(userId, monthRange(month));
+    const rows = await this.summary.totalsByCategory(userId, month);
     const result = buildMonthlySummary(rows);
 
     const categories = await this.summary.findCategories(userId, [

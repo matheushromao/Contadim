@@ -1,11 +1,15 @@
-import type { EntryType, IsoDate } from '@contadim/core';
+import type { EntryType, IsoDate, YearMonth } from '@contadim/core';
 import { Injectable } from '@nestjs/common';
 
 import type { Prisma, Transaction } from '../../generated/prisma/client.js';
 import { toDbDate } from '../../infra/prisma/calendar-date.js';
+import { effectiveMonthWhere } from '../../infra/prisma/effective-month.js';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
 
 export interface TransactionFilter {
+  /** Mês efetivo (data para contas, fatura para cartões). Exclusivo com `from`/`to`. */
+  month?: YearMonth;
+  /** Intervalo pela data do lançamento (data da compra, no caso de cartões). */
   from?: IsoDate;
   to?: IsoDate;
   type?: EntryType;
@@ -35,6 +39,7 @@ export class TransactionsRepository {
       ...(filter.categoryId && { categoryId: filter.categoryId }),
       ...(filter.accountId && { accountId: filter.accountId }),
       ...(filter.cardId && { cardId: filter.cardId }),
+      ...(filter.month && effectiveMonthWhere(filter.month)),
       ...((filter.from || filter.to) && {
         date: {
           ...(filter.from && { gte: toDbDate(filter.from) }),
