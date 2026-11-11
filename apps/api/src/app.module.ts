@@ -14,6 +14,7 @@ import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './infra/prisma/prisma.module.js';
 import { AccountsModule } from './modules/accounts/accounts.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { CardPurchasesModule } from './modules/card-purchases/card-purchases.module.js';
 import { CardsModule } from './modules/cards/cards.module.js';
 import { CategoriesModule } from './modules/categories/categories.module.js';
 import { PrivacyModule } from './modules/privacy/privacy.module.js';
@@ -70,6 +71,7 @@ import { UsersModule } from './modules/users/users.module.js';
     SummaryModule,
     PrivacyModule,
     CardsModule,
+    CardPurchasesModule,
   ],
   controllers: [HealthController],
   providers: [

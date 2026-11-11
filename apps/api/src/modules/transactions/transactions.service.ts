@@ -5,7 +5,6 @@ import type {
   Transaction as TransactionDto,
   UpdateTransactionData,
 } from '@contadim/contracts';
-import { monthRange } from '@contadim/core';
 import { Injectable } from '@nestjs/common';
 
 import { NotFoundError, UnprocessableError } from '../../common/errors/app-error.js';
@@ -41,6 +40,17 @@ export function toTransactionDto(transaction: Transaction): TransactionDto {
   };
 }
 
+/** Parcelas de cartão são editadas como uma compra só, pela fatura do cartão. */
+function assertNotCardCharge(transaction: Transaction): asserts transaction is Transaction & {
+  accountId: string;
+} {
+  if (!transaction.accountId) {
+    throw new UnprocessableError(
+      'Este lançamento é uma compra no cartão. Edite pela fatura do cartão',
+    );
+  }
+}
+
 @Injectable()
 export class TransactionsService {
   constructor(
@@ -50,10 +60,10 @@ export class TransactionsService {
   ) {}
 
   async list(userId: string, query: ListTransactionsQuery): Promise<Paginated<TransactionDto>> {
-    const range = query.month ? monthRange(query.month) : { from: query.from, to: query.to };
     const filter: TransactionFilter = {
-      ...(range.from && { from: range.from }),
-      ...(range.to && { to: range.to }),
+      ...(query.month && { month: query.month }),
+      ...(query.from && { from: query.from }),
+      ...(query.to && { to: query.to }),
       ...(query.type && { type: query.type }),
       ...(query.categoryId && { categoryId: query.categoryId }),
       ...(query.accountId && { accountId: query.accountId }),
@@ -75,10 +85,7 @@ export class TransactionsService {
 
   async update(userId: string, id: string, input: UpdateTransactionData): Promise<TransactionDto> {
     const current = await this.findOwned(userId, id);
-    if (!current.accountId) {
-      // Lançamentos de cartão (v0.2) terão edição própria.
-      throw new UnprocessableError('Este lançamento não pode ser editado por aqui');
-    }
+    assertNotCardCharge(current);
 
     const data: TransactionData = {
       amount: input.amount ?? current.amount,
@@ -93,7 +100,7 @@ export class TransactionsService {
   }
 
   async delete(userId: string, id: string): Promise<void> {
-    await this.findOwned(userId, id);
+    assertNotCardCharge(await this.findOwned(userId, id));
     await this.transactions.delete(id);
   }
 
