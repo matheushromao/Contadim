@@ -13,6 +13,8 @@ export const queryKeys = {
   cards: ['cards'] as const,
   invoices: (cardId: string) => ['invoices', cardId] as const,
   invoice: (cardId: string, month: string) => ['invoices', cardId, month] as const,
+  goals: ['goals'] as const,
+  goalMovements: (goalId: string) => ['goals', goalId, 'movements'] as const,
 };
 
 const MAX_PAGES = 20;
@@ -28,7 +30,7 @@ export async function fetchAll<T>(path: string, query: RequestOptions['query'] =
   return items;
 }
 
-/** Depois de mexer em lançamentos ou faturas, saldos, limites e resumos também mudam. */
+/** Depois de mexer em lançamentos, faturas ou metas, saldos, limites e resumos também mudam. */
 export async function invalidateMoneyData(queryClient: QueryClient): Promise<void> {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: ['transactions'] }),
@@ -36,5 +38,6 @@ export async function invalidateMoneyData(queryClient: QueryClient): Promise<voi
     queryClient.invalidateQueries({ queryKey: queryKeys.accounts }),
     queryClient.invalidateQueries({ queryKey: queryKeys.cards }),
     queryClient.invalidateQueries({ queryKey: ['invoices'] }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.goals }),
   ]);
 }

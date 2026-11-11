@@ -59,6 +59,18 @@ export const router = createBrowserRouter([
                   })),
               },
               {
+                path: '/metas',
+                lazy: () =>
+                  import('../features/goals/GoalsPage').then((m) => ({ Component: m.GoalsPage })),
+              },
+              {
+                path: '/metas/:id',
+                lazy: () =>
+                  import('../features/goals/GoalDetailPage').then((m) => ({
+                    Component: m.GoalDetailPage,
+                  })),
+              },
+              {
                 path: '/categorias',
                 lazy: () =>
                   import('../features/categories/CategoriesPage').then((m) => ({
