@@ -27,5 +27,10 @@ export const monthlySummarySchema = z.object({
   balance: centsSchema,
   expensesByCategory: z.array(summaryCategoryItemSchema),
   incomesByCategory: z.array(summaryCategoryItemSchema),
+  /**
+   * Quanto foi guardado em metas no mês (depósitos − resgates, pela data). Não entra em
+   * receitas, despesas nem no saldo do mês: é dinheiro separado, não gasto.
+   */
+  savedInMonth: centsSchema,
 });
 export type MonthlySummary = z.infer<typeof monthlySummarySchema>;

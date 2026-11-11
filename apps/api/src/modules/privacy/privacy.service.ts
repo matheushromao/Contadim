@@ -5,6 +5,8 @@ import { PinoLogger } from 'nestjs-pino';
 import { ForbiddenError, NotFoundError } from '../../common/errors/app-error.js';
 import { PasswordService } from '../auth/password.service.js';
 import { toCategoryDto } from '../categories/categories.service.js';
+import { fromDbDate } from '../../infra/prisma/calendar-date.js';
+import { toGoalMovementDto } from '../goals/goals.service.js';
 import { toInvoicePaymentDto } from '../invoices/invoices.service.js';
 import { toTransactionDto } from '../transactions/transactions.service.js';
 import { toUserDto } from '../users/users.mapper.js';
@@ -29,7 +31,7 @@ export class PrivacyService {
 
     return {
       exportedAt: new Date().toISOString(),
-      version: 2,
+      version: 3,
       user: toUserDto(data.user),
       accounts: data.accounts.map((account) => ({
         id: account.id,
@@ -54,6 +56,18 @@ export class PrivacyService {
         updatedAt: card.updatedAt.toISOString(),
       })),
       invoicePayments: data.invoicePayments.map(toInvoicePaymentDto),
+      goals: data.goals.map((goal) => ({
+        id: goal.id,
+        name: goal.name,
+        targetAmount: goal.targetAmount,
+        deadline: goal.deadline ? fromDbDate(goal.deadline) : null,
+        color: goal.color,
+        icon: goal.icon,
+        archivedAt: goal.archivedAt?.toISOString() ?? null,
+        createdAt: goal.createdAt.toISOString(),
+        updatedAt: goal.updatedAt.toISOString(),
+      })),
+      goalMovements: data.goalMovements.map(toGoalMovementDto),
     };
   }
 

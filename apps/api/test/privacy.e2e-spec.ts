@@ -8,6 +8,8 @@ import {
   defaultCategory,
   insertCard,
   insertCardCharge,
+  insertGoal,
+  insertGoalMovement,
   insertInvoicePayment,
   insertTransaction,
   walletAccount,
@@ -61,6 +63,15 @@ describe('LGPD', () => {
     it('exporta todos os dados da pessoa, e só dela', async () => {
       await seedTransaction(user, 1234);
       await seedCard(user);
+      const userId = user.auth.user.id;
+      const goal = await insertGoal(ctx.prisma, { userId, deadline: '2027-03-31' });
+      await insertGoalMovement(ctx.prisma, {
+        userId,
+        goalId: goal.id,
+        accountId: (await walletAccount(ctx.prisma, userId)).id,
+        type: 'DEPOSIT',
+        amount: 25000,
+      });
       const other = await registerUser(ctx.app);
       await seedTransaction(other, 9999);
 
@@ -75,13 +86,19 @@ describe('LGPD', () => {
       expect(data.user.email).toBe(user.email);
       expect(data.accounts).toHaveLength(1);
       expect(data.categories).toHaveLength(DEFAULT_CATEGORIES.length);
-      expect(data.version).toBe(2);
+      expect(data.version).toBe(3);
       expect(data.transactions).toMatchObject([
         { amount: 1234, description: 'Mercado', accountId: expect.any(String) as unknown },
         { amount: 8000, invoiceMonth: '2026-12', cardId: expect.any(String) as unknown },
       ]);
       expect(data.creditCards).toMatchObject([{ name: 'Nubank', closingDay: 3, dueDay: 10 }]);
       expect(data.invoicePayments).toMatchObject([{ amount: 3000, invoiceMonth: '2026-12' }]);
+      expect(data.goals).toMatchObject([
+        { name: 'Viagem', targetAmount: 200000, deadline: '2027-03-31' },
+      ]);
+      expect(data.goalMovements).toMatchObject([
+        { type: 'DEPOSIT', amount: 25000, goalId: goal.id },
+      ]);
       expect(JSON.stringify(response.body)).not.toContain('passwordHash');
     });
   });

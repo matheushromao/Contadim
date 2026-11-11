@@ -10,7 +10,10 @@ export class SummaryService {
 
   /** Resumo do mês: o banco agrega, o core calcula e aqui só juntamos os dados das categorias. */
   async monthly(userId: string, month: YearMonth): Promise<MonthlySummary> {
-    const rows = await this.summary.totalsByCategory(userId, month);
+    const [rows, savedInMonth] = await Promise.all([
+      this.summary.totalsByCategory(userId, month),
+      this.summary.savedInMonth(userId, month),
+    ]);
     const result = buildMonthlySummary(rows);
 
     const categories = await this.summary.findCategories(userId, [
@@ -30,6 +33,7 @@ export class SummaryService {
       balance: result.balance,
       expensesByCategory: withCategory(result.expensesByCategory),
       incomesByCategory: withCategory(result.incomesByCategory),
+      savedInMonth,
     };
   }
 }
