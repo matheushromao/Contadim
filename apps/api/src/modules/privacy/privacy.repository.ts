@@ -8,25 +8,47 @@ export class PrivacyRepository {
 
   /** Todos os dados da pessoa, para exportação. */
   async findAllData(userId: string) {
-    const [user, accounts, categories, transactions, creditCards, invoicePayments] =
-      await this.prisma.$transaction([
-        this.prisma.user.findUnique({ where: { id: userId } }),
-        this.prisma.account.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
-        this.prisma.category.findMany({
-          where: { userId },
-          orderBy: [{ type: 'asc' }, { name: 'asc' }],
-        }),
-        this.prisma.transaction.findMany({
-          where: { userId },
-          orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
-        }),
-        this.prisma.creditCard.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
-        this.prisma.invoicePayment.findMany({
-          where: { userId },
-          orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
-        }),
-      ]);
-    return { user, accounts, categories, transactions, creditCards, invoicePayments };
+    const [
+      user,
+      accounts,
+      categories,
+      transactions,
+      creditCards,
+      invoicePayments,
+      goals,
+      goalMovements,
+    ] = await this.prisma.$transaction([
+      this.prisma.user.findUnique({ where: { id: userId } }),
+      this.prisma.account.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
+      this.prisma.category.findMany({
+        where: { userId },
+        orderBy: [{ type: 'asc' }, { name: 'asc' }],
+      }),
+      this.prisma.transaction.findMany({
+        where: { userId },
+        orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+      }),
+      this.prisma.creditCard.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
+      this.prisma.invoicePayment.findMany({
+        where: { userId },
+        orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+      }),
+      this.prisma.goal.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
+      this.prisma.goalMovement.findMany({
+        where: { userId },
+        orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+      }),
+    ]);
+    return {
+      user,
+      accounts,
+      categories,
+      transactions,
+      creditCards,
+      invoicePayments,
+      goals,
+      goalMovements,
+    };
   }
 
   /**
