@@ -3,7 +3,7 @@
 [![CI](https://github.com/matheushromao/Contadim/actions/workflows/ci.yml/badge.svg)](https://github.com/matheushromao/Contadim/actions/workflows/ci.yml)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-teal.svg)](./LICENSE)
 
-**Controle financeiro pessoal, simples e gratuito.** Anote os gastos do dia a dia em segundos, veja para onde o dinheiro foi no mês e, em breve, organize o cartão de crédito e suas metas de economia.
+**Controle financeiro pessoal, simples e gratuito.** Anote os gastos do dia a dia em segundos, veja para onde o dinheiro foi no mês, acompanhe as faturas e parcelas do cartão de crédito e, em breve, suas metas de economia.
 
 O Contadim é feito para quem **não entende de finanças e não quer planilha**: abriu, digitou o valor, escolheu a categoria, pronto. Em português, em reais, pensado primeiro para o celular.
 
@@ -13,7 +13,8 @@ O Contadim é feito para quem **não entende de finanças e não quer planilha**
 
 ## Sumário
 
-- [O que já dá para fazer](#o-que-já-dá-para-fazer-v01)
+- [O que já dá para fazer](#o-que-já-dá-para-fazer-v02)
+- [Como o cartão de crédito funciona](#como-o-cartão-de-crédito-funciona)
 - [Como rodar](#como-rodar)
 - [Arquitetura](#arquitetura)
 - [API](#api)
@@ -22,14 +23,29 @@ O Contadim é feito para quem **não entende de finanças e não quer planilha**
 - [Roadmap](#roadmap)
 - [Como contribuir](#como-contribuir)
 
-## O que já dá para fazer (v0.1)
+## O que já dá para fazer (v0.2)
 
-- **Lançamento rápido:** só valor e categoria são obrigatórios. Data (hoje) e conta (a última usada) já vêm preenchidas.
-- **Resumo do mês:** receitas, despesas, saldo e "para onde foi o dinheiro" (gastos por categoria), com navegação entre meses.
-- **Lançamentos:** lista por mês agrupada por dia, com filtro por tipo, edição e exclusão.
+- **Lançamento rápido:** só valor e categoria são obrigatórios. Data (hoje) e "pagar com" (a última conta ou cartão usado) já vêm preenchidos. No cartão, dá para parcelar em até 24x, com a prévia das parcelas na hora.
+- **Cartão de crédito:** faturas por ciclo, parcelas distribuídas nos meses seguintes, limite disponível, status da fatura (aberta, fechada, paga, vencida) e pagamento total ou parcial a partir de uma conta.
+- **Resumo do mês:** receitas, despesas, saldo, "para onde foi o dinheiro" (gastos por categoria) e as faturas que vencem no mês, com navegação entre meses.
+- **Lançamentos:** lista por mês agrupada por dia (e as parcelas de cartão agrupadas por cartão), com filtro por tipo, edição e exclusão.
 - **Contas** (corrente, poupança, carteira) com saldo atual, e **categorias** personalizáveis (cor e ícone). Toda conta nova já começa com categorias padrão e uma "Carteira".
 - **Conta de usuário** com e-mail e senha, e sessão segura que se renova sozinha.
 - **Seus dados são seus (LGPD):** exportação completa em JSON e exclusão definitiva da conta.
+
+## Como o cartão de crédito funciona
+
+As regras ficam em `packages/core/src/cards`, como funções puras e testadas, e a API e o front usam as mesmas funções.
+
+- **Cada fatura é identificada pelo mês de vencimento.** Um cartão que fecha no dia 3 e vence no dia 10 tem a "fatura de dezembro", que fecha em 3/12 e vence em 10/12.
+- **Compras a partir do dia do fechamento** (inclusive) vão para a fatura seguinte.
+- **Dias que não existem no mês** são ajustados para o último dia: um fechamento no dia 31 cai em 28/29 em fevereiro.
+- **Parcelamento:** o valor total é dividido em parcelas iguais, e os centavos que sobram vão na 1ª (R$ 10,00 em 3x = 3,34 + 3,33 + 3,33). A 1ª parcela cai na fatura da compra, e as demais nos meses seguintes.
+- **No resumo, a compra conta no mês da fatura.** Uma compra de R$ 300 em 3x aparece como R$ 100 em cada um dos três meses.
+- **Pagar a fatura** registra a saída de uma conta. O saldo da conta diminui, mas o pagamento **não** conta como despesa de novo, porque as compras já contaram.
+- **Pagamento parcial** é permitido. O que faltar continua na mesma fatura. Ainda não existe rotativo nem juros.
+- **Limite disponível** é o limite menos tudo o que está em aberto, incluindo parcelas futuras.
+- **Mudar o dia de fechamento ou vencimento** vale só para compras novas.
 
 ## Como rodar
 
@@ -141,7 +157,7 @@ Ferramentas: **pnpm workspaces** + **Turborepo** (cache e ordem de build), **Typ
 - **Multiusuário desde o início:** toda entidade tem `userId`, toda consulta é filtrada pelo usuário autenticado e o `userId` **sempre** vem do token, nunca do cliente. Recurso de outra pessoa responde 404.
 - **Dinheiro sempre em centavos, como inteiro** (`R$ 12,50` = `1250`). Nunca `float`.
 - **Datas de lançamento como data de calendário** (`YYYY-MM-DD`, sem fuso); timestamps de auditoria em UTC.
-- **Cada funcionalidade é um módulo novo.** Cartão (v0.2) e metas (v0.3) entram como `modules/cards` e `modules/goals`, e o modelo de dados já está preparado para eles (lançamento com conta opcional, campos de parcelamento e recorrência).
+- **Cada funcionalidade é um módulo novo.** O cartão de crédito (v0.2) entrou como os módulos `cards`, `card-purchases` e `invoices`, mexendo nos existentes só onde era necessário (o "mês efetivo" no resumo e na lista, e o saldo das contas). Metas (v0.3) entram como `modules/goals`.
 
 ### Stack
 
@@ -165,15 +181,20 @@ Ferramentas: **pnpm workspaces** + **Turborepo** (cache e ordem de build), **Typ
 
 REST versionada em `/api/v1`, documentada com **Swagger em `/api/docs`**.
 
-| Recurso     | Rotas                                                                                                                            |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Auth        | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`                                                            |
-| Usuário     | `GET /users/me`, `GET /users/me/export`, `DELETE /users/me`                                                                      |
-| Contas      | `GET/POST /accounts`, `GET/PATCH/DELETE /accounts/:id`                                                                           |
-| Categorias  | `GET/POST /categories`, `GET/PATCH/DELETE /categories/:id`                                                                       |
-| Lançamentos | `GET/POST /transactions` (filtros `month`, `from`/`to`, `type`, `categoryId`, `accountId`), `GET/PATCH/DELETE /transactions/:id` |
-| Resumo      | `GET /summary/monthly?month=AAAA-MM`                                                                                             |
-| Saúde       | `GET /health` (fora do prefixo)                                                                                                  |
+| Recurso     | Rotas                                                                                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Auth        | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`                                                                      |
+| Usuário     | `GET /users/me`, `GET /users/me/export`, `DELETE /users/me`                                                                                |
+| Contas      | `GET/POST /accounts`, `GET/PATCH/DELETE /accounts/:id`                                                                                     |
+| Categorias  | `GET/POST /categories`, `GET/PATCH/DELETE /categories/:id`                                                                                 |
+| Lançamentos | `GET/POST /transactions` (filtros `month`, `from`/`to`, `type`, `categoryId`, `accountId`, `cardId`), `GET/PATCH/DELETE /transactions/:id` |
+| Cartões     | `GET/POST /cards`, `GET/PATCH/DELETE /cards/:id` (com limite disponível e fatura atual)                                                    |
+| Compras     | `POST /cards/:id/purchases` (valor total + parcelas), `GET/PATCH/DELETE /cards/:id/purchases/:groupId`                                     |
+| Faturas     | `GET /cards/:id/invoices`, `GET /cards/:id/invoices/:mes`, `POST/DELETE /cards/:id/invoices/:mes/payments`                                 |
+| Resumo      | `GET /summary/monthly?month=AAAA-MM`                                                                                                       |
+| Saúde       | `GET /health` (fora do prefixo)                                                                                                            |
+
+Com `month`, lançamentos de conta entram pela data e parcelas de cartão pelo mês da fatura. Parcelas de cartão são editadas pela compra (`/cards/:id/purchases/:groupId`), não por `/transactions/:id`.
 
 **Listagens** são paginadas (`?page=1&pageSize=20`) e respondem `{ data, meta: { page, pageSize, total, totalPages } }`.
 
@@ -198,7 +219,7 @@ pnpm test
 ```
 
 - **`core` e `contracts`:** testes unitários das regras e dos schemas.
-- **`api`:** testes de integração que sobem a aplicação inteira (mesma configuração de produção) contra um PostgreSQL real. Cobrem fluxos de auth, CRUDs, filtros, resumo, LGPD e o **isolamento entre usuários**.
+- **`api`:** testes de integração que sobem a aplicação inteira (mesma configuração de produção) contra um PostgreSQL real. Cobrem fluxos de auth, CRUDs, filtros, resumo, cartões, parcelas, faturas, pagamentos, LGPD e o **isolamento entre usuários**. A data de "hoje" é fixada nos testes de fatura, para que fiquem determinísticos.
 - **`web`:** testes de componente com Testing Library, como lançamento rápido, resumo, formulários e guards de rota.
 
 O **CI** (GitHub Actions) roda formatação, lint, typecheck, testes e build em todo push e PR, e também builda as imagens Docker.
@@ -213,9 +234,11 @@ O **CI** (GitHub Actions) roda formatação, lint, typecheck, testes e build em 
 ## Roadmap
 
 - [x] **v0.1:** contas, categorias, lançamentos, resumo mensal, autenticação, LGPD, Docker e CI
-- [ ] **v0.2:** cartão de crédito, com faturas por ciclo (compra depois do fechamento vai para a fatura seguinte) e parcelamentos distribuídos nos meses seguintes
+- [x] **v0.2:** cartão de crédito, com faturas por ciclo, parcelamentos distribuídos nos meses seguintes, limite disponível e pagamento de fatura (total ou parcial)
 - [ ] **v0.3:** metas de economia, com valor-alvo, prazo e quanto guardar por mês
-- [ ] **Depois:** gráficos de evolução, comparação com meses anteriores, importação de extrato (OFX/CSV), PWA e login social
+- [ ] **Depois:** gráficos de evolução, comparação com meses anteriores, importação de extrato (OFX/CSV), PWA, login social, estorno no cartão e rotativo
+
+O histórico de cada versão está no [CHANGELOG](./CHANGELOG.md).
 
 Tem uma ideia? Abra uma issue!
 
