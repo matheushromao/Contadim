@@ -4,6 +4,7 @@ import {
   daysInMonth,
   isValidIsoDate,
   isValidYearMonth,
+  monthDiff,
   monthRange,
   shiftMonth,
   toIsoDate,
@@ -77,5 +78,13 @@ describe('toIsoDate', () => {
   it('usa o calendário local', () => {
     expect(toIsoDate(new Date(2026, 10, 9, 23, 59))).toBe('2026-11-09');
     expect(toIsoDate(new Date(2026, 0, 1, 0, 0))).toBe('2026-01-01');
+  });
+});
+
+describe('monthDiff', () => {
+  it('conta meses atravessando o ano', () => {
+    expect(monthDiff('2026-11', '2027-03')).toBe(4);
+    expect(monthDiff('2026-11', '2026-11')).toBe(0);
+    expect(monthDiff('2027-01', '2026-12')).toBe(-1);
   });
 });

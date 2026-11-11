@@ -58,6 +58,13 @@ export function shiftMonth(value: YearMonth, delta: number): YearMonth {
   return `${pad(Math.floor(index / 12), 4)}-${pad((index % 12) + 1)}`;
 }
 
+/** Quantos meses de `from` até `to` (negativo se `to` vier antes). Ex.: `"2026-11"` → `"2027-03"` = 4. */
+export function monthDiff(from: YearMonth, to: YearMonth): number {
+  const a = parseYearMonth(from);
+  const b = parseYearMonth(to);
+  return (b.year - a.year) * 12 + (b.month - a.month);
+}
+
 /** Mês ao qual uma data pertence. Ex.: `"2026-11-09"` → `"2026-11"`. */
 export function toYearMonth(date: IsoDate): YearMonth {
   if (!isValidIsoDate(date)) {

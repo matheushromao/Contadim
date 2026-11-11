@@ -95,4 +95,16 @@ describe('computeAccountBalance', () => {
       }),
     ).toBe(70000);
   });
+
+  it('desconta depósitos em metas e devolve os resgates', () => {
+    expect(
+      computeAccountBalance({
+        initialBalance: 100000,
+        totalIncome: 0,
+        totalExpense: 0,
+        totalGoalDeposits: 30000,
+        totalGoalWithdrawals: 5000,
+      }),
+    ).toBe(75000);
+  });
 });
