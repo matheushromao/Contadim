@@ -7,6 +7,8 @@ import { PrismaService } from '../../infra/prisma/prisma.service.js';
 export interface AccountTotals {
   totalIncome: number;
   totalExpense: number;
+  /** Pagamentos de fatura que saíram desta conta (reduzem o saldo, mas não são despesa). */
+  totalInvoicePayments: number;
 }
 
 /** Acesso a dados de contas. Toda consulta é filtrada pelo `userId`. */
@@ -39,28 +41,44 @@ export class AccountsRepository {
     await this.prisma.account.delete({ where: { id } });
   }
 
-  async hasTransactions(id: string): Promise<boolean> {
-    return (await this.prisma.transaction.count({ where: { accountId: id }, take: 1 })) > 0;
+  /** Conta usada em lançamentos ou em pagamentos de fatura. */
+  async isInUse(id: string): Promise<boolean> {
+    const [transactions, payments] = await Promise.all([
+      this.prisma.transaction.count({ where: { accountId: id }, take: 1 }),
+      this.prisma.invoicePayment.count({ where: { accountId: id }, take: 1 }),
+    ]);
+    return transactions + payments > 0;
   }
 
   /** Soma receitas e despesas de cada conta, agregando no banco. */
   async totalsByAccount(userId: string, accountIds: string[]): Promise<Map<string, AccountTotals>> {
     const totals = new Map<string, AccountTotals>(
-      accountIds.map((id) => [id, { totalIncome: 0, totalExpense: 0 }]),
+      accountIds.map((id) => [id, { totalIncome: 0, totalExpense: 0, totalInvoicePayments: 0 }]),
     );
     if (accountIds.length === 0) return totals;
 
-    const rows = await this.prisma.transaction.groupBy({
-      by: ['accountId', 'type'],
-      where: { userId, accountId: { in: accountIds } },
-      _sum: { amount: true },
-    });
+    const [rows, payments] = await Promise.all([
+      this.prisma.transaction.groupBy({
+        by: ['accountId', 'type'],
+        where: { userId, accountId: { in: accountIds } },
+        _sum: { amount: true },
+      }),
+      this.prisma.invoicePayment.groupBy({
+        by: ['accountId'],
+        where: { userId, accountId: { in: accountIds } },
+        _sum: { amount: true },
+      }),
+    ]);
     for (const row of rows) {
       const entry = row.accountId ? totals.get(row.accountId) : undefined;
       if (!entry) continue;
       const sum = row._sum.amount ?? 0;
       if (row.type === 'INCOME') entry.totalIncome += sum;
       else entry.totalExpense += sum;
+    }
+    for (const payment of payments) {
+      const entry = totals.get(payment.accountId);
+      if (entry) entry.totalInvoicePayments += payment._sum.amount ?? 0;
     }
     return totals;
   }
