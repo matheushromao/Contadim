@@ -1,17 +1,36 @@
-import { ArrowLeftRight, ChartPie, Landmark, Settings, Tags, type LucideIcon } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  ChartPie,
+  CreditCard,
+  Landmark,
+  Settings,
+  Tags,
+  type LucideIcon,
+  Wallet,
+} from 'lucide-react';
 
 export interface NavItem {
   to: string;
   label: string;
   icon: LucideIcon;
-  /** Aparece na barra inferior do celular (máx. 4 itens + botão de lançamento). */
-  mobile: boolean;
+  /** Outras rotas em que o item também aparece como ativo. */
+  alsoActiveOn?: string[];
 }
 
+/** Barra lateral (desktop). */
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Resumo', icon: ChartPie, mobile: true },
-  { to: '/lancamentos', label: 'Lançamentos', icon: ArrowLeftRight, mobile: true },
-  { to: '/contas', label: 'Contas', icon: Landmark, mobile: true },
-  { to: '/categorias', label: 'Categorias', icon: Tags, mobile: false },
-  { to: '/ajustes', label: 'Ajustes', icon: Settings, mobile: true },
+  { to: '/', label: 'Resumo', icon: ChartPie },
+  { to: '/lancamentos', label: 'Lançamentos', icon: ArrowLeftRight },
+  { to: '/contas', label: 'Contas', icon: Landmark },
+  { to: '/cartoes', label: 'Cartões', icon: CreditCard },
+  { to: '/categorias', label: 'Categorias', icon: Tags },
+  { to: '/ajustes', label: 'Ajustes', icon: Settings },
+];
+
+/** Barra inferior (celular): 4 itens + o botão de lançamento. Contas e cartões dividem "Carteira". */
+export const MOBILE_NAV_ITEMS: NavItem[] = [
+  { to: '/', label: 'Resumo', icon: ChartPie },
+  { to: '/lancamentos', label: 'Lançamentos', icon: ArrowLeftRight },
+  { to: '/contas', label: 'Carteira', icon: Wallet, alsoActiveOn: ['/cartoes'] },
+  { to: '/ajustes', label: 'Ajustes', icon: Settings },
 ];
