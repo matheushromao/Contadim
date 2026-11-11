@@ -23,6 +23,11 @@ enum EntryType {
   EXPENSE
 }
 
+enum GoalMovementType {
+  DEPOSIT
+  WITHDRAWAL
+}
+
 enum RecurrenceFrequency {
   WEEKLY
   MONTHLY
@@ -44,6 +49,8 @@ model User {
   refreshTokens   RefreshToken[]
   creditCards     CreditCard[]
   invoicePayments InvoicePayment[]
+  goals           Goal[]
+  goalMovements   GoalMovement[]
 
   @@map("users")
 }
@@ -82,6 +89,7 @@ model Account {
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions    Transaction[]
   invoicePayments InvoicePayment[]
+  goalMovements   GoalMovement[]
 
   @@index([userId])
   @@map("accounts")
@@ -194,4 +202,50 @@ model InvoicePayment {
   @@index([userId, cardId, invoiceMonth])
   @@index([accountId])
   @@map("invoice_payments")
+}
+
+/// Meta de economia: valor-alvo e prazo opcional. O progresso vem das movimentações.
+model Goal {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  name         String
+  /// Valor-alvo em centavos (> 0).
+  targetAmount Int       @map("target_amount")
+  /// Prazo opcional. Sem prazo, a meta só acompanha o progresso.
+  deadline     DateTime? @db.Date
+  color        String
+  icon         String
+  archivedAt   DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movements GoalMovement[]
+
+  @@index([userId])
+  @@map("goals")
+}
+
+/// Dinheiro guardado (depósito) ou tirado (resgate) de uma meta, sempre ligado a uma conta.
+/// Mexe no saldo da conta, mas não é receita nem despesa no resumo.
+model GoalMovement {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  goalId    String           @map("goal_id") @db.Uuid
+  accountId String           @map("account_id") @db.Uuid
+  type      GoalMovementType
+  /// Valor em centavos, sempre positivo. O sentido vem de `type`.
+  amount    Int
+  date      DateTime         @db.Date
+  note      String?
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal    Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([userId, goalId, date])
+  @@index([userId, date])
+  @@index([accountId])
+  @@map("goal_movements")
 }
