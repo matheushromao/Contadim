@@ -3,20 +3,16 @@ import {
   cardPurchaseSchema,
   type CreateCardPurchaseData,
   createCardPurchaseSchema,
-  idSchema,
   type UpdateCardPurchaseData,
   updateCardPurchaseSchema,
 } from '@contadim/contracts';
-import { Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, HttpStatus, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { type AuthUser, CurrentUser } from '../../common/auth/auth.decorators.js';
 import { ApiErrorResponses, ApiZodBody, ApiZodResponse } from '../../common/openapi/zod-openapi.js';
-import { IdParam, ZodBody } from '../../common/pipes/params.js';
-import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
+import { IdParam, UuidParam, ZodBody } from '../../common/pipes/params.js';
 import { CardPurchasesService } from './card-purchases.service.js';
-
-const GroupIdParam = () => Param('groupId', new ZodValidationPipe(idSchema));
 
 @ApiTags('cards')
 @ApiBearerAuth()
@@ -51,7 +47,7 @@ export class CardPurchasesController {
   get(
     @CurrentUser() user: AuthUser,
     @IdParam() cardId: string,
-    @GroupIdParam() groupId: string,
+    @UuidParam('groupId') groupId: string,
   ): Promise<CardPurchase> {
     return this.purchases.get(user.id, cardId, groupId);
   }
@@ -67,7 +63,7 @@ export class CardPurchasesController {
   update(
     @CurrentUser() user: AuthUser,
     @IdParam() cardId: string,
-    @GroupIdParam() groupId: string,
+    @UuidParam('groupId') groupId: string,
     @ZodBody(updateCardPurchaseSchema) body: UpdateCardPurchaseData,
   ): Promise<CardPurchase> {
     return this.purchases.update(user.id, cardId, groupId, body);
@@ -80,7 +76,7 @@ export class CardPurchasesController {
   async delete(
     @CurrentUser() user: AuthUser,
     @IdParam() cardId: string,
-    @GroupIdParam() groupId: string,
+    @UuidParam('groupId') groupId: string,
   ): Promise<void> {
     await this.purchases.delete(user.id, cardId, groupId);
   }
