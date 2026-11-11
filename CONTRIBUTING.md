@@ -45,13 +45,13 @@ pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 ## 2. Onde fica cada coisa
 
-| Quero mexer em…                                               | Vá para                                                       |
-| ------------------------------------------------------------- | ------------------------------------------------------------- |
-| Uma regra de negócio (cálculo, formatação de dinheiro, datas) | `packages/core`                                               |
-| O formato de uma requisição/resposta da API                   | `packages/contracts`                                          |
-| Um endpoint, validação ou acesso ao banco                     | `apps/api/src/modules/<domínio>`                              |
-| O modelo de dados                                             | `apps/api/prisma/schema.prisma` + `pnpm db:migrate`           |
-| Uma tela ou componente                                        | `apps/web/src/features/<domínio>` e `apps/web/src/components` |
+| Quero mexer em…                                                                  | Vá para                                                       |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Uma regra de negócio (cálculo, formatação de dinheiro, datas, faturas, parcelas) | `packages/core`                                               |
+| O formato de uma requisição/resposta da API                                      | `packages/contracts`                                          |
+| Um endpoint, validação ou acesso ao banco                                        | `apps/api/src/modules/<domínio>`                              |
+| O modelo de dados                                                                | `apps/api/prisma/schema.prisma` + `pnpm db:migrate`           |
+| Uma tela ou componente                                                           | `apps/web/src/features/<domínio>` e `apps/web/src/components` |
 
 As regras de arquitetura estão no [README](./README.md#princípios). As mais importantes:
 
