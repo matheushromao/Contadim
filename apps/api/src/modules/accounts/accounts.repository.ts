@@ -9,7 +9,19 @@ export interface AccountTotals {
   totalExpense: number;
   /** Pagamentos de fatura que saíram desta conta (reduzem o saldo, mas não são despesa). */
   totalInvoicePayments: number;
+  /** Dinheiro guardado em metas a partir desta conta (reduz o saldo, mas não é despesa). */
+  totalGoalDeposits: number;
+  /** Dinheiro resgatado de metas para esta conta (aumenta o saldo, mas não é receita). */
+  totalGoalWithdrawals: number;
 }
+
+export const EMPTY_ACCOUNT_TOTALS: AccountTotals = {
+  totalIncome: 0,
+  totalExpense: 0,
+  totalInvoicePayments: 0,
+  totalGoalDeposits: 0,
+  totalGoalWithdrawals: 0,
+};
 
 /** Acesso a dados de contas. Toda consulta é filtrada pelo `userId`. */
 @Injectable()
@@ -41,23 +53,24 @@ export class AccountsRepository {
     await this.prisma.account.delete({ where: { id } });
   }
 
-  /** Conta usada em lançamentos ou em pagamentos de fatura. */
+  /** Conta usada em lançamentos, pagamentos de fatura ou movimentações de metas. */
   async isInUse(id: string): Promise<boolean> {
-    const [transactions, payments] = await Promise.all([
+    const counts = await Promise.all([
       this.prisma.transaction.count({ where: { accountId: id }, take: 1 }),
       this.prisma.invoicePayment.count({ where: { accountId: id }, take: 1 }),
+      this.prisma.goalMovement.count({ where: { accountId: id }, take: 1 }),
     ]);
-    return transactions + payments > 0;
+    return counts.some((count) => count > 0);
   }
 
   /** Soma receitas e despesas de cada conta, agregando no banco. */
   async totalsByAccount(userId: string, accountIds: string[]): Promise<Map<string, AccountTotals>> {
     const totals = new Map<string, AccountTotals>(
-      accountIds.map((id) => [id, { totalIncome: 0, totalExpense: 0, totalInvoicePayments: 0 }]),
+      accountIds.map((id) => [id, { ...EMPTY_ACCOUNT_TOTALS }]),
     );
     if (accountIds.length === 0) return totals;
 
-    const [rows, payments] = await Promise.all([
+    const [rows, payments, goalMovements] = await Promise.all([
       this.prisma.transaction.groupBy({
         by: ['accountId', 'type'],
         where: { userId, accountId: { in: accountIds } },
@@ -65,6 +78,11 @@ export class AccountsRepository {
       }),
       this.prisma.invoicePayment.groupBy({
         by: ['accountId'],
+        where: { userId, accountId: { in: accountIds } },
+        _sum: { amount: true },
+      }),
+      this.prisma.goalMovement.groupBy({
+        by: ['accountId', 'type'],
         where: { userId, accountId: { in: accountIds } },
         _sum: { amount: true },
       }),
@@ -79,6 +97,13 @@ export class AccountsRepository {
     for (const payment of payments) {
       const entry = totals.get(payment.accountId);
       if (entry) entry.totalInvoicePayments += payment._sum.amount ?? 0;
+    }
+    for (const movement of goalMovements) {
+      const entry = totals.get(movement.accountId);
+      if (!entry) continue;
+      const sum = movement._sum.amount ?? 0;
+      if (movement.type === 'DEPOSIT') entry.totalGoalDeposits += sum;
+      else entry.totalGoalWithdrawals += sum;
     }
     return totals;
   }

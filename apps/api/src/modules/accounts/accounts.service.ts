@@ -11,11 +11,13 @@ import { Injectable } from '@nestjs/common';
 import { ConflictError, NotFoundError } from '../../common/errors/app-error.js';
 import { paginate, toSkipTake } from '../../common/pagination/pagination.js';
 import type { Account } from '../../generated/prisma/client.js';
-import { type AccountTotals, AccountsRepository } from './accounts.repository.js';
+import {
+  type AccountTotals,
+  AccountsRepository,
+  EMPTY_ACCOUNT_TOTALS,
+} from './accounts.repository.js';
 
-const NO_TOTALS: AccountTotals = { totalIncome: 0, totalExpense: 0, totalInvoicePayments: 0 };
-
-function toAccountDto(account: Account, totals: AccountTotals = NO_TOTALS): AccountDto {
+function toAccountDto(account: Account, totals: AccountTotals = EMPTY_ACCOUNT_TOTALS): AccountDto {
   return {
     id: account.id,
     name: account.name,
@@ -62,7 +64,7 @@ export class AccountsService {
     await this.findOwned(userId, id);
     if (await this.accounts.isInUse(id)) {
       throw new ConflictError(
-        'Esta conta tem lançamentos ou pagamentos de fatura. Remova-os antes de excluí-la',
+        'Esta conta tem lançamentos, pagamentos de fatura ou movimentações de metas. Remova-os antes de excluí-la',
       );
     }
     await this.accounts.delete(id);
