@@ -9,3 +9,4 @@ export * from './export';
 export * from './cards';
 export * from './card-purchases';
 export * from './invoices';
+export * from './goals';
