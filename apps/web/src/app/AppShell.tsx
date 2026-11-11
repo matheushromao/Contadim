@@ -1,12 +1,12 @@
 import clsx from 'clsx';
 import { LogOut, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, useLocation } from 'react-router';
 
 import { Logo } from '../components/Logo';
 import { useAuth } from '../features/auth/auth-context';
 import { TransactionFormSheet } from '../features/transactions/TransactionFormSheet';
-import { NAV_ITEMS } from './navigation';
+import { MOBILE_NAV_ITEMS, NAV_ITEMS } from './navigation';
 
 /**
  * Layout do app autenticado. Mobile first: barra de navegação inferior no celular
@@ -15,6 +15,7 @@ import { NAV_ITEMS } from './navigation';
 export function AppShell() {
   const { user, logout } = useAuth();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const { pathname } = useLocation();
 
   return (
     <div className="min-h-dvh md:flex">
@@ -85,7 +86,7 @@ export function AppShell() {
         className="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <ul className="grid grid-cols-4">
-          {NAV_ITEMS.filter((item) => item.mobile).map(({ to, label, icon: Icon }) => (
+          {MOBILE_NAV_ITEMS.map(({ to, label, icon: Icon, alsoActiveOn = [] }) => (
             <li key={to}>
               <NavLink
                 to={to}
@@ -93,7 +94,9 @@ export function AppShell() {
                 className={({ isActive }) =>
                   clsx(
                     'flex flex-col items-center gap-1 py-2.5 text-xs font-medium',
-                    isActive ? 'text-brand-700' : 'text-stone-500',
+                    isActive || alsoActiveOn.some((path) => pathname.startsWith(path))
+                      ? 'text-brand-700'
+                      : 'text-stone-500',
                   )
                 }
               >

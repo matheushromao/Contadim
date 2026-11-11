@@ -1,4 +1,4 @@
-import type { Account, Category, Paginated } from '@contadim/contracts';
+import type { Account, Category, CreditCard, InvoiceDetail, Paginated } from '@contadim/contracts';
 import { vi } from 'vitest';
 
 import type { RequestOptions } from '../lib/api-client';
@@ -63,4 +63,66 @@ export function fakeApi(handlers: Record<string, Handler>) {
       return Promise.reject(error instanceof Error ? error : new Error(String(error)));
     }
   });
+}
+
+export const CARD_ID = '00000000-0000-4000-8000-0000000000d1';
+
+export const card: CreditCard = {
+  id: CARD_ID,
+  name: 'Nubank',
+  limit: 500000,
+  closingDay: 3,
+  dueDay: 10,
+  color: '#8B5CF6',
+  availableLimit: 380000,
+  currentInvoice: {
+    cardId: CARD_ID,
+    month: '2026-12',
+    periodStart: '2026-11-03',
+    periodEnd: '2026-12-02',
+    closingDate: '2026-12-03',
+    dueDate: '2026-12-10',
+    total: 12000,
+    paid: 0,
+    remaining: 12000,
+    status: 'OPEN',
+  },
+  archivedAt: null,
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
+
+/** Fatura de um mês com uma parcela 2/3 e o total informado. */
+export function invoiceDetail(
+  month: string,
+  overrides: Partial<InvoiceDetail> = {},
+): InvoiceDetail {
+  return {
+    ...card.currentInvoice,
+    month,
+    status: 'CLOSED',
+    total: 30000,
+    paid: 10000,
+    remaining: 20000,
+    transactions: [
+      {
+        id: '00000000-0000-4000-8000-0000000000e1',
+        description: 'Geladeira',
+        amount: 30000,
+        type: 'EXPENSE',
+        date: '2026-10-15',
+        categoryId: categories[0]!.id,
+        accountId: null,
+        cardId: CARD_ID,
+        invoiceMonth: month,
+        installmentGroupId: '00000000-0000-4000-8000-0000000000f1',
+        installmentNumber: 2,
+        installmentTotal: 3,
+        createdAt: '2026-10-15T00:00:00Z',
+        updatedAt: '2026-10-15T00:00:00Z',
+      },
+    ],
+    payments: [],
+    ...overrides,
+  };
 }

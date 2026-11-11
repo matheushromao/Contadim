@@ -47,6 +47,18 @@ export const router = createBrowserRouter([
                   })),
               },
               {
+                path: '/cartoes',
+                lazy: () =>
+                  import('../features/cards/CardsPage').then((m) => ({ Component: m.CardsPage })),
+              },
+              {
+                path: '/cartoes/:id',
+                lazy: () =>
+                  import('../features/cards/CardDetailPage').then((m) => ({
+                    Component: m.CardDetailPage,
+                  })),
+              },
+              {
                 path: '/categorias',
                 lazy: () =>
                   import('../features/categories/CategoriesPage').then((m) => ({

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Money } from '../../components/Money';
 import { Button } from '../../components/ui/Button';
 import { EmptyState, ErrorState, LoadingState, PageHeader } from '../../components/ui/States';
+import { WalletTabs } from '../cards/WalletTabs';
 import { AccountFormSheet } from './AccountFormSheet';
 import { AccountIcon } from './AccountIcon';
 import { ACCOUNT_TYPE_LABELS, useAccounts } from './api';
@@ -16,6 +17,7 @@ export function AccountsPage() {
 
   return (
     <section>
+      <WalletTabs />
       <PageHeader
         title="Contas"
         action={

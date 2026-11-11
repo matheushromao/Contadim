@@ -18,10 +18,17 @@ export function fakeAuth(overrides: Partial<AuthContextValue> = {}): AuthContext
   };
 }
 
-/** Renderiza um elemento com router em memória, React Query e auth falsos. */
+/**
+ * Renderiza um elemento com router em memória, React Query e auth falsos.
+ * `path` é o padrão da rota (ex.: `/cartoes/:id`) e `url` o endereço inicial.
+ */
 export function renderWithProviders(
   element: ReactElement,
-  { auth = fakeAuth(), path = '/' }: { auth?: AuthContextValue; path?: string } = {},
+  {
+    auth = fakeAuth(),
+    path = '/',
+    url = path,
+  }: { auth?: AuthContextValue; path?: string; url?: string } = {},
 ) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const router = createMemoryRouter(
@@ -29,7 +36,7 @@ export function renderWithProviders(
       { path, element },
       { path: '*', element: <p>outra página</p> },
     ],
-    { initialEntries: [path] },
+    { initialEntries: [url] },
   );
   const result = render(
     <QueryClientProvider client={queryClient}>
