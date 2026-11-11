@@ -6,6 +6,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AUTH_RATE_LIMIT_KEY } from './common/auth/auth.decorators.js';
+import { ClockModule } from './common/clock/clock.module.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ENV, type Env } from './config/env.js';
 import { EnvModule } from './config/env.module.js';
@@ -13,6 +14,7 @@ import { HealthController } from './health/health.controller.js';
 import { PrismaModule } from './infra/prisma/prisma.module.js';
 import { AccountsModule } from './modules/accounts/accounts.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { CardsModule } from './modules/cards/cards.module.js';
 import { CategoriesModule } from './modules/categories/categories.module.js';
 import { PrivacyModule } from './modules/privacy/privacy.module.js';
 import { SummaryModule } from './modules/summary/summary.module.js';
@@ -59,6 +61,7 @@ import { UsersModule } from './modules/users/users.module.js';
       ],
     }),
     PrismaModule,
+    ClockModule,
     UsersModule,
     AuthModule,
     AccountsModule,
@@ -66,6 +69,7 @@ import { UsersModule } from './modules/users/users.module.js';
     TransactionsModule,
     SummaryModule,
     PrivacyModule,
+    CardsModule,
   ],
   controllers: [HealthController],
   providers: [
