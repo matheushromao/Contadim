@@ -45,6 +45,18 @@ export function SummaryPage() {
           <Totals summary={summary.data} />
           <ExpensesByCategory summary={summary.data} />
           <MonthInvoices month={month} transactions={transactions.data ?? []} />
+          {summary.data.savedInMonth > 0 && (
+            <Link
+              to="/metas"
+              className="flex items-center justify-between gap-3 rounded-2xl bg-emerald-50 px-4 py-3 text-emerald-900 ring-1 ring-emerald-100 hover:bg-emerald-100/60"
+            >
+              <span>
+                Você guardou <Money cents={summary.data.savedInMonth} className="font-bold" /> em
+                metas neste mês 💪
+              </span>
+              <span className="shrink-0 text-sm font-semibold">Ver metas</span>
+            </Link>
+          )}
         </>
       )}
 
