@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 
 import { AppModule } from '../../src/app.module.js';
 import { setupApp } from '../../src/app.setup.js';
+import { CLOCK, FixedClock } from '../../src/common/clock/clock.js';
 import { PrismaService } from '../../src/infra/prisma/prisma.service.js';
 
 export interface TestContext {
@@ -10,9 +11,16 @@ export interface TestContext {
   prisma: PrismaService;
 }
 
-/** Sobe a aplicação completa (mesma configuração de produção) para testes de integração. */
-export async function createTestApp(): Promise<TestContext> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+/**
+ * Sobe a aplicação completa (mesma configuração de produção) para testes de integração.
+ * `today` fixa a data de "hoje" (fatura atual, vencimentos) para testes determinísticos.
+ */
+export async function createTestApp(options: { today?: string } = {}): Promise<TestContext> {
+  let builder = Test.createTestingModule({ imports: [AppModule] });
+  if (options.today) {
+    builder = builder.overrideProvider(CLOCK).useValue(new FixedClock(options.today));
+  }
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({ logger: false });
   setupApp(app);
   await app.init();
