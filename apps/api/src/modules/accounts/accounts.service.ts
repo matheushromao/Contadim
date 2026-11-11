@@ -13,7 +13,7 @@ import { paginate, toSkipTake } from '../../common/pagination/pagination.js';
 import type { Account } from '../../generated/prisma/client.js';
 import { type AccountTotals, AccountsRepository } from './accounts.repository.js';
 
-const NO_TOTALS: AccountTotals = { totalIncome: 0, totalExpense: 0 };
+const NO_TOTALS: AccountTotals = { totalIncome: 0, totalExpense: 0, totalInvoicePayments: 0 };
 
 function toAccountDto(account: Account, totals: AccountTotals = NO_TOTALS): AccountDto {
   return {
@@ -60,9 +60,9 @@ export class AccountsService {
 
   async delete(userId: string, id: string): Promise<void> {
     await this.findOwned(userId, id);
-    if (await this.accounts.hasTransactions(id)) {
+    if (await this.accounts.isInUse(id)) {
       throw new ConflictError(
-        'Esta conta tem lançamentos. Mova ou apague os lançamentos antes de excluí-la',
+        'Esta conta tem lançamentos ou pagamentos de fatura. Remova-os antes de excluí-la',
       );
     }
     await this.accounts.delete(id);
