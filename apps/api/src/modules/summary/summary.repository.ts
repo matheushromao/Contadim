@@ -1,6 +1,7 @@
-import type { CategoryTotalRow, YearMonth } from '@contadim/core';
+import { type CategoryTotalRow, monthRange, type YearMonth } from '@contadim/core';
 import { Injectable } from '@nestjs/common';
 
+import { toDbDate } from '../../infra/prisma/calendar-date.js';
 import { effectiveMonthWhere } from '../../infra/prisma/effective-month.js';
 import { PrismaService } from '../../infra/prisma/prisma.service.js';
 
@@ -38,5 +39,19 @@ export class SummaryRepository {
       where: { userId, id: { in: ids } },
       select: { id: true, name: true, color: true, icon: true },
     });
+  }
+
+  /** Depósitos − resgates em metas no mês (pela data da movimentação). */
+  async savedInMonth(userId: string, month: YearMonth): Promise<number> {
+    const { from, to } = monthRange(month);
+    const rows = await this.prisma.goalMovement.groupBy({
+      by: ['type'],
+      where: { userId, date: { gte: toDbDate(from), lte: toDbDate(to) } },
+      _sum: { amount: true },
+    });
+    return rows.reduce(
+      (total, row) => total + (row.type === 'DEPOSIT' ? 1 : -1) * (row._sum.amount ?? 0),
+      0,
+    );
   }
 }

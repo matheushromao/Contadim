@@ -43,6 +43,7 @@ const summaryFor = (month: string): MonthlySummary => ({
     },
   ],
   incomesByCategory: [],
+  savedInMonth: 0,
 });
 
 const normalize = (text: string | null) => (text ?? '').replace(/\s/g, ' ');

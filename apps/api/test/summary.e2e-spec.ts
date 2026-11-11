@@ -3,7 +3,12 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { bearer, registerUser, type TestUser } from './utils/auth.js';
-import { insertTransaction, walletAccount } from './utils/fixtures.js';
+import {
+  insertGoal,
+  insertGoalMovement,
+  insertTransaction,
+  walletAccount,
+} from './utils/fixtures.js';
 import { createTestApp, resetDatabase, type TestContext } from './utils/test-app.js';
 
 describe('Resumo mensal', () => {
@@ -122,12 +127,33 @@ describe('Resumo mensal', () => {
       balance: 0,
       expensesByCategory: [],
       incomesByCategory: [],
+      savedInMonth: 0,
     });
   });
 
   it('considera apenas os lançamentos da própria pessoa', async () => {
     const other = await registerUser(ctx.app);
     expect((await summary('2026-11', other)).totalExpense).toBe(0);
+  });
+
+  it('mostra quanto foi guardado em metas sem mexer em receitas e despesas', async () => {
+    const userId = user.auth.user.id;
+    const accountId = (await walletAccount(ctx.prisma, userId)).id;
+    const goal = await insertGoal(ctx.prisma, { userId });
+    const movement = (type: 'DEPOSIT' | 'WITHDRAWAL', amount: number, date: string) =>
+      insertGoalMovement(ctx.prisma, { userId, goalId: goal.id, accountId, type, amount, date });
+    await movement('DEPOSIT', 30000, '2026-11-02');
+    await movement('WITHDRAWAL', 5000, '2026-11-20');
+    await movement('DEPOSIT', 99999, '2026-12-01'); // outro mês
+
+    const november = await summary('2026-11');
+    expect(november).toMatchObject({
+      savedInMonth: 25000,
+      totalIncome: 500000,
+      totalExpense: 200000,
+      balance: 300000,
+    });
+    expect((await summary('2025-01')).savedInMonth).toBe(0);
   });
 
   it('valida o mês', async () => {
